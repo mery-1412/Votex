@@ -13,7 +13,7 @@ const Signup = () => {
   const router = useRouter();
 
   const handleLoginRedirect = () => {
-    router.push('/auth/Login')
+    router.push('/login')
 }
 
   const handleSubmit = (e) => {

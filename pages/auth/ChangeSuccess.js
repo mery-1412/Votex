@@ -5,7 +5,7 @@ const ChangeSuccess = () => {
     const router = useRouter();
     
     const handleGoHome = () => {
-        router.push("/auth/Login");
+        router.push("/login");
       };
 
 

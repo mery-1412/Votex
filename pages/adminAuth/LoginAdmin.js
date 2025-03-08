@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 
-const Login = () => {
+const LoginAdmin = () => {
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -11,13 +11,6 @@ const Login = () => {
 
   const router = useRouter();
 
-  const handleSignupRedirect = () =>{
-    router.push("/signup")
-  }
-
-  const handleForgotRedirect = () => {
-    router.push("/forgot-password")
-  }
 
   const handleSubmit = async (e) =>{
     e.preventDefault();
@@ -33,9 +26,10 @@ const Login = () => {
   if(!response.ok){
     setError(json.error)
   } else {
-      
-    //login success
+          
 
+    //login admin success
+   
   }
   setIsLoading(false)
 
@@ -46,7 +40,7 @@ const Login = () => {
     <div className="flex items-center justify-center min-h-screen bg-cover bg-center relative"   >
     <div className="absolute inset-0 bg-black bg-opacity-50"></div>
     <div className="relative w-96 p-8 bg-white bg-opacity-10 backdrop-blur-md rounded-lg border border-white border-opacity-30 text-white text-center">
-      <h2 className="text-2xl mb-4">Log In</h2>
+      <h2 className="text-2xl mb-4">Admin Log In</h2>
       <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
         <div className="flex flex-col space-y-2">
               <input
@@ -70,19 +64,16 @@ const Login = () => {
                 placeholder="Enter Password"
               />
           </div>
-        <div className="flex justify-center items-center text-sm">
-          <a className="hover:underline" onClick={handleForgotRedirect}>Forgot password?</a>
-        </div>
+
         {error && <p className="text-red-300 text-sm">{error}</p>} 
 
         <button type="submit" className="gradient-border-button">
           Log In
         </button>
       </form>
-      <p className="mt-4 ">Don't have an account? <a className="hover:underline" onClick={handleSignupRedirect}>Sign Up</a></p>
     </div>
   </div>
   );
 };
 
-export default Login;
+export default LoginAdmin;

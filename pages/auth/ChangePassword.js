@@ -27,7 +27,7 @@ const ChangePassword = () => {
       .then((res) => {
         console.log("res",res)
         if (res.status === 200) {
-          router.push("/auth/ChangeSuccess")
+          router.push("/change-success")
         }
       })
       .catch(err =>{

@@ -14,7 +14,7 @@ const FrogotPassword = () => {
     axios.post('', {email})
     .then(res=>{
       setIsValid(true)
-      router.push("/auth/EmailSent")
+      router.push("/email-sent")
     }
     ).catch(err => {
       if (err.response && err.response.data && err.response.data.message) {
