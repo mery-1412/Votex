@@ -1,13 +1,15 @@
-import "@/styles/globals.css";
+import "@/styles/global.css";
+
 
 import { VotingProvider } from "../context/Voter";
-import NavBar from "../components/NavBar/NavBar"
 const MyApp = ({ Component, pageProps }) => (
   <VotingProvider>
   <div>
-    <NavBar/>
+    
    <div>
-      <Component {...pageProps} />;
+      <title>VoteX</title>
+      <meta name="description" content="A modern blockchain based voting application" />
+      <Component {...pageProps} />
    </div>
  </div>
   </VotingProvider>

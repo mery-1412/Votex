@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+@font-face {
+    font-family: "futura";
+    src: url("/fonts/Futura.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+  }
+
+
+
+body {
+    margin: 0;
+    padding: 0;
+    background-image: url('../public/assets/bg.jpeg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    height: 100vh; 
+    font-family: "futura", sans-serif;
+    overflow: hidden;   
+  }
+
+  .gradient-border-button {
+    background: transparent; /* Transparent background */
+    border: 1px solid transparent; /* Transparent border initially */
+    border-image: linear-gradient(to right, rgb(192,59,250), rgb(66,147,234)) 1; /* Gradient border */
+    color: white; 
+    padding: 0.5rem 1.5rem; 
+    font-weight: 500; 
+    font-family: "futura", sans-serif;
+    cursor: pointer;
+    transition: all 0.3s ease; 
+  }
+  
+
+  .gradient-border-button:hover {
+    transform: scale(1.05); /* Slightly scale up on hover */
+    box-shadow: 0 4px 15px rgba(192, 59, 250, 0.3); /* Add a subtle shadow */
+  }
+
