@@ -16,10 +16,9 @@ function NavBar() {
 
         {/* NAV LINKS FOR DESKTOP (Centered) */}
         <div className="hidden md:flex flex-1 justify-center space-x-6 text-white text-lg">
-          <Link href="#about" className="hover:text-purple-400 transition">About</Link>
-          <Link href="#blog" className="hover:text-purple-400 transition">Blogs</Link>
-          <Link href="#contact" className="hover:text-purple-400 transition">Contact</Link>
-          <Link href="#projects" className="hover:text-purple-400 transition">Projects</Link>
+        <Link href="#home" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Home</Link>
+        <Link href="#about" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">About</Link>
+        <Link href="#contact" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Contact</Link>
         </div>
 
         {/* LOGIN BUTTON (Right) */}
@@ -55,11 +54,10 @@ function NavBar() {
         >
           ✖
         </button>
-
+        <Link href="#home" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Home</Link>
         <Link href="#about" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">About</Link>
-        <Link href="#blog" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Blogs</Link>
         <Link href="#contact" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Contact</Link>
-        <Link href="#projects" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Projects</Link>
+       
 
         {/* LOGIN BUTTON IN MOBILE MENU */}
         <Link href="/login">
