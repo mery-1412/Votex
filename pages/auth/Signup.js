@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import axios from "axios";
+
 
 
 const Signup = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [cardId, setCardId] = useState("")
+  const [idNumber, setidNumber] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false);
 
@@ -25,7 +27,7 @@ const Signup = () => {
     }
     setIsLoading(true);
         
-    axios.post("")
+    axios.post("http://localhost:5000/api/auth/register",{email,password,idNumber})
     .then(res=>{
       setIsLoading(false);
       router.push("/auth/Login")       
@@ -65,7 +67,7 @@ const Signup = () => {
                 name="cardId"
                 required
                 className="w-full bg-transparent border-b-2 border-gray-300 outline-none text-white p-2"
-                onChange={(e) => setCardId(e.target.value)}
+                onChange={(e) => setidNumber(e.target.value)}
                 placeholder="Enter Card Id"
               />
           </div>
@@ -81,7 +83,7 @@ const Signup = () => {
           </div>
           <div className="flex flex-col space-y-2">
               <input
-                type="confirmPassword"
+                type="password"
                 name="confirmPassword"
                 required
                 className="w-full bg-transparent border-b-2 border-gray-300 outline-none text-white p-2"

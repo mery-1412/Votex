@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import axios from "axios";
 
 const LoginAdmin = () => {
   
@@ -15,7 +16,7 @@ const LoginAdmin = () => {
   const handleSubmit = async (e) =>{
     e.preventDefault();
     setIsLoading(true)
-    const response = await fetch('', {
+    const response = await fetch('http://localhost:5000/api/auth/login', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({ email, password })
@@ -26,7 +27,7 @@ const LoginAdmin = () => {
   if(!response.ok){
     setError(json.error)
   } else {
-          
+          alert("login succefully")
 
     //login admin success
    

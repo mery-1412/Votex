@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import axios from "axios";
 
 
 const ChangePassword = () => {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [error, setError] = useState("error message")
+  const [error, setError] = useState("")
 
   const router = useRouter()
+  const { id, token } = router.query; 
 
 
   const handleSubmit = (e) => {
@@ -17,7 +19,7 @@ const ChangePassword = () => {
       return;
     }
     axios
-      .post(``, {
+      .post(`http://localhost:5000/api/auth/reset-password/${id}/${token}`, {
         password
       },
       {headers: {
@@ -59,7 +61,7 @@ const ChangePassword = () => {
           </div>
           <div className="flex flex-col space-y-2 ">
               <input
-                type="confirmPassword"
+                type="password"
                 name="confirmPassword"
                 required
                 className="w-full bg-transparent border-b-2 border-gray-300 outline-none text-white p-2"

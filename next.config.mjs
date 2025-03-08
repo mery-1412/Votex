@@ -6,7 +6,7 @@ const nextConfig = {
       { source: "/login", destination: "/auth/Login" },
       { source: "/signup", destination: "/auth/Signup" },
       { source: "/forgot-password", destination: "/auth/ForgotPassword" },
-      { source: "/change-password", destination: "/auth/ChangePassword" },
+      { source: "/reset-password/:id/:token", destination: "/auth/ChangePassword" },
       { source: "/change-success", destination: "/auth/ChangeSuccess" },
       { source: "/email-sent", destination: "/auth/EmailSent" },
       { source: "/allow-voters", destination: "/allowd-voters" },

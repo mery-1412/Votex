@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import axios from "axios";
 
 
 const FrogotPassword = () => {
@@ -11,9 +12,9 @@ const FrogotPassword = () => {
 
   const handleSubmit = (e) =>{
     e.preventDefault();
-    axios.post('', {email})
+    axios.post('http://localhost:5000/api/auth/forgot-password', {email})
     .then(res=>{
-      setIsValid(true)
+     
       router.push("/email-sent")
     }
     ).catch(err => {

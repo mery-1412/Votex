@@ -22,7 +22,7 @@ const Login = () => {
   const handleSubmit = async (e) =>{
     e.preventDefault();
     setIsLoading(true)
-    const response = await fetch('', {
+    const response = await fetch('http://localhost:5000/api/auth/login', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({ email, password })
@@ -32,9 +32,11 @@ const Login = () => {
 
   if(!response.ok){
     setError(json.error)
+   
   } else {
       
     //login success
+    alert("login successfully")
 
   }
   setIsLoading(false)

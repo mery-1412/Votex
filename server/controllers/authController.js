@@ -109,7 +109,7 @@ exports.forgotPassword=async(req,res)=>{
     {expiresIn:'5m'}
 
   )
-  const link = `http://localhost:5000/api/auth/reset-password/${user._id}/${token}`;
+  const link = `http://localhost:3000/reset-password/${user._id}/${token}`;
  
      // Send the reset password email
      await sendMail({
