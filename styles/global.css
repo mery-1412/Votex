@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  background: url('../public/assets/bg.jpeg') no-repeat center center fixed;
+  background-size: cover;
+  min-height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+  .gradient-border-button {
+    background: transparent; /* Transparent background */
+    border: 1px solid transparent; /* Transparent border initially */
+    border-image: linear-gradient(to right, rgb(192,59,250), rgb(66,147,234)) 1; /* Gradient border */
+    color: white; 
+    padding: 0.5rem 1.5rem; 
+    font-weight: 600; 
+    cursor: pointer;
+    transition: all 0.3s ease; 
+  }
+  
+
+  .gradient-border-button:hover {
+    transform: scale(1.05); /* Slightly scale up on hover */
+    box-shadow: 0 4px 15px rgba(192, 59, 250, 0.3); /* Add a subtle shadow */
+  }
+
+  @keyframes float {
+    0% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    50% {
+      transform: translateY(-20px);
+      opacity: 0.8;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  .animate-float {
+    animation: float 3s infinite ease-in-out;
+  }
+  
+  
+  
+

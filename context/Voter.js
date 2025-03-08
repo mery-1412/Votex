@@ -21,8 +21,8 @@ const fetchContract = (signerOrProvider) =>
 
     export const VotingProvider = ({children}) =>{
 
-         const votingTitle= 'First Smart Conctract 3app';
-        return  <VotingContext.Provider value={{votingTitle}}>{children}</VotingContext.Provider>;
+         const votingTitle= ''
+        return  <VotingContext.Provider value={{votingTitle}}>{children}</VotingContext.Provider>
         
     };
 
