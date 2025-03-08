@@ -10,6 +10,9 @@ export default {
       colors: {
         
       },
+      fontFamily: {
+        futura: ["futura", "sans-serif"],
+      },
     },
   },
   plugins: [],

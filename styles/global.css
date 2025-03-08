@@ -1,6 +1,13 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@font-face {
+  font-family: "futura";
+  src: url("/fonts/Futura.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+}
 
 html, body {
   background: url('../public/assets/bg.jpeg') no-repeat center center fixed;
@@ -9,6 +16,7 @@ html, body {
   width: 100%;
   margin: 0;
   padding: 0;
+  font-family: "futura", sans-serif;
 }
 
   .gradient-border-button {
@@ -20,6 +28,7 @@ html, body {
     font-weight: 600; 
     cursor: pointer;
     transition: all 0.3s ease; 
+
   }
   
 
