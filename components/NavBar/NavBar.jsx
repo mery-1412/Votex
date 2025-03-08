@@ -43,10 +43,11 @@ function NavBar() {
 
       {/* MOBILE MENU (Animated) */}
       <div
-        className={`fixed inset-0 text-white transition-transform duration-300 ease-in-out ${
-          navbar ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0"
-        } md:hidden flex flex-col items-center justify-center py-20 space-y-6`}
-      >
+      className={`fixed inset-0 text-white transition-transform duration-300 ease-in-out ${
+        navbar ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0"
+      } md:hidden flex flex-col items-center justify-center py-20 space-y-6 bg-white/10 backdrop-blur-lg`}
+    >
+  
         {/* CLOSE BUTTON INSIDE MOBILE MENU */}
         <button
           className="absolute top-6 right-6 text-white text-3xl focus:outline-none"
