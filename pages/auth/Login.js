@@ -35,10 +35,7 @@ const Login = () => {
     setError(json.error)
 
   } else {
-      
-    alert("logged in")
-    console.log(response);
-    
+          
     router.push('/HomeUser')
 
   }

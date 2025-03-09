@@ -4,7 +4,8 @@ const jwt = require('jsonwebtoken');
 const sendMail = require('../utils/email');
 const {hashPassword,ComparePassword}=require('../helpers/auth');
 const cookieParser = require("cookie-parser");
-
+const { v4: uuidv4 } = require("uuid"); 
+const sessionStore = require("../sessionStore");
 
 exports.signup = async (req, res) => {
   try {
@@ -45,6 +46,8 @@ exports.signup = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
+    
+    
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
@@ -60,37 +63,28 @@ exports.login = async (req, res) => {
       return res.status(401).json({ success: false, error: "Incorrect password" });
     }
 
-    jwt.sign(
-      { id: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "3h" },
-      (err, token) => {
-        if (err) {
-          return res.status(500).json({ error: "Error generating token" });
-        }
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "3h" });
 
-        // Set cookie options
-        const cookieOptions = {
-          httpOnly: true,
-          sameSite: "Strict", 
-          secure: true, // HTTPS in production
-          maxAge: 3 * 60 * 60 * 1000, // 3 hours
-        };
+    const sessionId = uuidv4();
+    sessionStore.set(sessionId, token); 
 
-        res.cookie("token", token, cookieOptions);
 
-        return res.status(200).json({
-          success: true,
-          message: "User logged in successfully",
-          role: user.userRole,
-        });
-      }
-    );
+    res.cookie("sessionId", sessionId, {
+      httpOnly: true,
+      sameSite: "Strict",
+      secure: true, // Use HTTPS in production
+      maxAge: 3 * 60 * 60 * 1000, // 3 hours
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "User logged in successfully",
+      role: user.userRole,
+    });
   } catch (err) {
     res.status(500).json({ error: "Internal Server Error", details: err.message });
   }
 };
-
 
 exports.forgotPassword=async(req,res)=>{
   try{

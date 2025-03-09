@@ -7,22 +7,20 @@ const HomeUser = ({userId}) => {
 }
 
 export async function getServerSideProps({ req }) {
-    const token = req.cookies?.token;           
-    console.log("cookies", req.cookies);
+    const sessionId = req.cookies?.sessionId; 
 
-    if (!token) {
+    if (!sessionId) {
         return { redirect: { destination: "/login", permanent: false } };
     }
 
     try {
-        const res = await fetch("http://localhost:5000/api/test-users/getUser", { 
+        const res = await fetch("http://localhost:5000/api/test-users/getUser", {
             method: "GET",
             headers: { 
                 "Content-Type": "application/json",
-                Cookie: `token=${token}` ,
-
+                "Cookie": `sessionId=${sessionId}` 
             },
-            credentials: "include", 
+            credentials: "include",
         });
 
         if (!res.ok) {
@@ -30,14 +28,13 @@ export async function getServerSideProps({ req }) {
         }
 
         const user = await res.json();
-        console.log("user", user);
-
         return { props: { userId: user.idNumber } };
     } catch (error) {
         console.error("Error fetching user:", error);
         return { redirect: { destination: "/login", permanent: false } };
     }
 }
+
 
 export default HomeUser
 
