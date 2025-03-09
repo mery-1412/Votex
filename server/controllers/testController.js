@@ -1,4 +1,6 @@
 const User = require("../models/User");
+const jwt = require('jsonwebtoken');
+
 
 exports.addTestUsers = async (req, res) => {
   try {
@@ -32,3 +34,29 @@ exports.addTestUsers = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error", details: err.message });
   }
 };
+
+
+exports.getUser =async(req, res) => {
+  const token = req.cookies.token;
+  console.log("token baack", token);
+  
+  if (!token) return res.status(401).json({ message: "Unauthorized" });
+
+  try {
+    console.log("INSIDE TRY")
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.id; 
+
+    console.log("decoded", decoded)
+
+    const user = await User.findById(userId).select("-password"); 
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+    console.log('back user getUser',user);
+    
+    res.json(user);
+  } catch (err) {
+    res.status(403).json({ message: "Invalid token" });
+  }
+}

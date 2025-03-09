@@ -2,7 +2,8 @@ const bcrypt = require("bcrypt"); // Instead of bcrypt
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const sendMail = require('../utils/email');
-const {hashPassword,ComparePassword}=require('../helpers/auth')
+const {hashPassword,ComparePassword}=require('../helpers/auth');
+const cookieParser = require("cookie-parser");
 
 
 exports.signup = async (req, res) => {
@@ -26,7 +27,6 @@ exports.signup = async (req, res) => {
     }
 
     const hashedPassword = await hashPassword(password);
-    console.log("🛠 Hashed password being stored:", hashedPassword);
     existingId.email = email;
     existingId.password = hashedPassword;
     await existingId.save();
@@ -72,19 +72,16 @@ exports.login = async (req, res) => {
         // Set cookie options
         const cookieOptions = {
           httpOnly: true,
-          sameSite: "None", // Allows cross-site cookies
-          secure: process.env.NODE_ENV === "production", // HTTPS in production
+          sameSite: "Strict", 
+          secure: true, // HTTPS in production
           maxAge: 3 * 60 * 60 * 1000, // 3 hours
         };
 
-        // Send token as a cookie
         res.cookie("token", token, cookieOptions);
 
         return res.status(200).json({
           success: true,
           message: "User logged in successfully",
-          userId: user._id,
-          token: token, // Send token in response (optional)
           role: user.userRole,
         });
       }
@@ -199,7 +196,6 @@ exports.forgotPassword=async(req,res)=>{
 
 exports.resetPassword = async (req, res) => {
   try {
-    console.log("Received request body:", req.body); // Debugging
 
     const { id, token } = req.params; 
     const { password } = req.body; 

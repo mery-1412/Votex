@@ -13,6 +13,8 @@ const nextConfig = {
       { source: "/candidate-registration", destination: "/candidate-registration" },
       { source: "/voter-list", destination: "/voterList" },
       { source: "/admin-login", destination: "/adminAuth/LoginAdmin" },
+      { source: "/home-user", destination: "/HomeUser" },
+
       
       
     ];
