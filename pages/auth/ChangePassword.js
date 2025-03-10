@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
+import OnlyPublic from "../protectingRoutes/OnlyPublic";
 
 
 const ChangePassword = () => {
@@ -44,6 +45,7 @@ const ChangePassword = () => {
 
 
   return (
+    <OnlyPublic>
     <div className="flex items-center justify-center min-h-screen bg-cover bg-center relative"   >
     <div className="absolute inset-0 bg-black bg-opacity-50"></div>
     <div className="relative w-96 p-8 bg-white bg-opacity-10 backdrop-blur-md rounded-lg border border-white border-opacity-30 text-white text-center">
@@ -76,6 +78,7 @@ const ChangePassword = () => {
       </form>
         </div>
   </div>
+  </OnlyPublic>
   );
 };
 

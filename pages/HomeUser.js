@@ -1,8 +1,16 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState ,useContext} from 'react'
+import RequireAuth from './protectingRoutes/RequireAuth';
+import { AuthContext } from "./context/AuthContext";
 
 const HomeUser = ({userId}) => {
+     const {  logout } = useContext(AuthContext);
   return (
-    <div>USER ID{userId}</div>
+    <RequireAuth>
+        <div>USER ID{userId}</div>
+        <button className='gradient-border-button' onClick={logout}>Log out</button>
+
+    </RequireAuth>
+    
   )
 }
 

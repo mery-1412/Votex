@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useContext} from "react";
 import { useRouter } from "next/router";
-import axios from "axios";
+import OnlyPublic from "../protectingRoutes/OnlyPublic";
+
+import { AuthContext } from "../context/AuthContext"; // Import AuthContext
+
 
 const LoginAdmin = () => {
   
@@ -11,6 +14,8 @@ const LoginAdmin = () => {
 
 
   const router = useRouter();
+  const { checkAuth } = useContext(AuthContext);
+
 
 
   const handleSubmit = async (e) =>{
@@ -19,7 +24,8 @@ const LoginAdmin = () => {
     const response = await fetch('http://localhost:5000/api/auth/login', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ email, password }),
+    credentials: "include",
   })
   
   const json = await response.json()
@@ -27,9 +33,10 @@ const LoginAdmin = () => {
   if(!response.ok){
     setError(json.error)
   } else {
-          alert("login succefully")
+    await checkAuth();
+    alert("YAW LOGIIIIIIIIIIIIIIIIT")
+    router.push('/dashboard')
 
-    //login admin success
    
   }
   setIsLoading(false)
@@ -38,6 +45,7 @@ const LoginAdmin = () => {
 }
 
   return (
+    <OnlyPublic>
     <div className="flex items-center justify-center min-h-screen bg-cover bg-center relative"   >
     <div className="absolute inset-0 bg-black bg-opacity-50"></div>
     <div className="relative w-96 p-8 bg-white bg-opacity-10 backdrop-blur-md rounded-lg border border-white border-opacity-30 text-white text-center">
@@ -74,6 +82,7 @@ const LoginAdmin = () => {
       </form>
     </div>
   </div>
+  </OnlyPublic>
   );
 };
 

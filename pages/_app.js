@@ -1,6 +1,9 @@
 import "@/styles/global.css";
 import { VotingProvider } from "../context/Voter";
+import { AuthContextProvider } from "./context/AuthContext";
+
 const MyApp = ({ Component, pageProps }) => (
+  <AuthContextProvider>
   <VotingProvider>
   <div>
 
@@ -11,6 +14,7 @@ const MyApp = ({ Component, pageProps }) => (
    </div>
  </div>
   </VotingProvider>
+  </AuthContextProvider>
  );
 
 export default MyApp;

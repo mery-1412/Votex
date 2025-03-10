@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useState, useContext} from "react";
 import { useRouter } from "next/router";
+import OnlyPublic from "../protectingRoutes/OnlyPublic";
+import { AuthContext } from "../context/AuthContext"; // Import AuthContext
+
 
 const Login = () => {
   
@@ -10,6 +13,7 @@ const Login = () => {
 
 
   const router = useRouter();
+  const { checkAuth } = useContext(AuthContext);
 
   const handleSignupRedirect = () =>{
     router.push("/signup")
@@ -30,13 +34,15 @@ const Login = () => {
   })
   
   const json = await response.json()
-
+  console.log(json);
+  
   if(!response.ok){
     setError(json.error)
 
   } else {
-          
-    router.push('/HomeUser')
+    await checkAuth();
+    alert("YAW LOGIIIIIIIIIIIIIIIIT")
+    router.push('/home-user')
 
   }
   setIsLoading(false)
@@ -45,6 +51,7 @@ const Login = () => {
 }
 
   return (
+    <OnlyPublic>
     <div className="flex items-center justify-center min-h-screen bg-cover bg-center relative"   >
     <div className="absolute inset-0 bg-black bg-opacity-50"></div>
     <div className="relative w-96 p-8 bg-white bg-opacity-10 backdrop-blur-md rounded-lg border border-white border-opacity-30 text-white text-center">
@@ -84,6 +91,7 @@ const Login = () => {
       <p className="mt-4 ">Don't have an account? <a className="hover:underline" onClick={handleSignupRedirect}>Sign Up</a></p>
     </div>
   </div>
+  </OnlyPublic>
   );
 };
 

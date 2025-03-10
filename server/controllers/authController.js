@@ -79,7 +79,7 @@ exports.login = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "User logged in successfully",
-      role: user.userRole,
+      user: user
     });
   } catch (err) {
     res.status(500).json({ error: "Internal Server Error", details: err.message });
@@ -216,3 +216,8 @@ exports.resetPassword = async (req, res) => {
     res.status(400).json({ message: "Invalid or expired token", error: err });
   }
 };
+
+exports.logout = async(req, res) => {
+  res.clearCookie("sessionId");
+  res.status(200).json({ message: "Logged out successfully" });
+}

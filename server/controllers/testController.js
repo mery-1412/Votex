@@ -41,8 +41,9 @@ exports.getUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-
-    return res.json({ idNumber: user.idNumber, email: user.email, role: user.userRole });
+    console.log("user role",user.role);
+    
+    return res.json({ idNumber: user.idNumber, email: user.email, role: user.role });
   } catch (err) {
     res.status(500).json({ error: "Internal Server Error" });
   }

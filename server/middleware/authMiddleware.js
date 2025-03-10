@@ -4,7 +4,7 @@ const sessionStore = require("../sessionStore");
 
 
 exports.authMiddleware = (req, res, next) => {
-  console.log("Cookies received:", req.cookies); // Debug log
+  console.log("Cookies received:", req.cookies);
 
   const sessionId = req.cookies.sessionId;
   if (!sessionId) {
@@ -14,7 +14,7 @@ exports.authMiddleware = (req, res, next) => {
 
   const token = sessionStore.get(sessionId);
   console.log("Session ID:", sessionId);
-  console.log("Retrieved Token:", token); // Check if token exists
+  console.log("Retrieved Token:", token); 
 
   if (!token) {
     console.log("❌ Invalid sessionId:", sessionId);
