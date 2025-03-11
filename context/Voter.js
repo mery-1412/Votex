@@ -11,8 +11,31 @@ import { useRouter } from 'next/router';
 
 import { VotingAddress,VotingAddressABI } from './constants';
 
-const client = ipfsHttpClient('https://ipfs.infura.io:5001/api/v0')
-//interact with mart contract here :
+
+///////ipfs and infura section 
+//const client = ipfsHttpClient('https://ipfs.infura.io:5001/api/v0') can be used from tutorial 
+
+const projectId = process.env.NEXT_PUBLIC_INFURA_PROJECT_ID;
+const projectSecret = process.env.NEXT_PUBLIC_INFURA_PROJECT_SECRET;
+
+// Ensure variables exist
+if (!projectId || !projectSecret) {
+     throw new Error("Missing INFURA credentials! Check your .env.local file.");
+ }
+const auth = 'Basic ' + btoa(projectId + ":" + projectSecret);
+//const auth = 'Basic ' + Buffer.from(`${projectId}:${projectSecret}`).toString('base64'); //in case it doesnt work 
+
+const client = ipfsHttpClient({
+  host: "ipfs.infura.io",
+  port: 5001,
+  protocol: "https",
+  headers: {
+    authorization: auth
+  }
+});
+
+
+//interact with smart contract here :
 const fetchContract = (signerOrProvider) =>
      new ethers.Contract(VotingAddress,VotingAddressABI ,signerOrProvider);
 
@@ -48,7 +71,7 @@ const checkIfWalletIsConnected= async() =>
      if (!window.ethereum)return setError("Install MetaMask yal cavé")
      const account = await window.ethereum.request({method:"eth_accounts"});
      
-     if (account.lenght){
+     if (account.length){
           setCurrentAccount(account[0]);
      } else {
           setError("Install MetaMask and connect then reload...")
@@ -64,13 +87,13 @@ const connectWallet=async()=>
 
 }
 
-//////UPLOAD to IPFS  VOTER IMAGE (SIDE)
+//////UPLOAD to IPFS VOTER IMAGE (SIDE)
 
 const uploadToIPFS = async(file)=>
 {
 try{
      const added = await client.add({content:file})
-     const url ='https://ipfs.infura.io/ipfs/${added.path}';
+     const url =`https://ipfs.infura.io/ipfs/${added.path}`;
      return url;
 }catch(error){
      setError("Error Uploading file to IPFS")
