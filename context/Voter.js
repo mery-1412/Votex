@@ -28,15 +28,21 @@ const fetchContract = (signerOrProvider) =>
          const pushCandidate=[];
          const candidateIndex=[];
          const[candidateArray,setCandidateArray]=useState(pushCandidate);
+
 ///////////END OF CANDIDATE DATA 
+
           const[error,setError]=useState('');
           const highestVote=[];
+
 ///////////VOTER SECTION 
+
           const pushVoter=[];
           const[voterArray,setVoterArray]=useState(pushVoter);
           const[voterLength,setVoterLength]=useState('');
           const [voterAdress,setVoterAdress]=useState([]);
+
 //////////Connection to metamask 
+
 const checkIfWalletIsConnected= async() =>
  {
      if (!window.ethereum)return setError("Install MetaMask yal cavé")
