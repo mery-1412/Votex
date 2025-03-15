@@ -8,8 +8,8 @@ import { StoreMemory } from "@web3-storage/w3up-client/stores/memory";
 import * as Proof from "@web3-storage/w3up-client/proof";
 import { Signer } from "@web3-storage/w3up-client/principal/ed25519";
 import { VotingAddress, VotingAddressABI } from "./constants";
-import { create } from '@web3-storage/w3up-client'
-import { filesFromPaths } from 'files-from-path'
+import { create } from '@web3-storage/w3up-client';
+//import { filesFromPaths } from 'files-from-path'
 
 // Create Voting Context
 export const VotingContext = createContext();
@@ -83,21 +83,23 @@ export const VotingProvider = ({ children }) => {
         const store = new StoreMemory();
         const w3Client = await Client.create({ principal, store });
 
+
         console.log("✅ Web3.Storage client initialized.");
+
         
         if (!process.env.NEXT_PUBLIC_PROOF) {
           throw new Error("❌ UCAN Proof is missing in environment variables.");
         }
         
         // ✅ Step 2: Load the UCAN proof (PROOF) to gain access
-        const proof = await Proof.parse(Buffer.from(process.env.NEXT_PUBLIC_PROOF).toString('base64'));
-        const space = await w3Client.addSpace(proof);
-        await w3Client.setCurrentSpace(space.did());
+        // const proof = await Proof.parse(Buffer.from(process.env.NEXT_PUBLIC_PROOF).toString('base64'));
+        // const space = await w3Client.addSpace(proof);
+        // await w3Client.setCurrentSpace(space.did());
 
-        console.log("✅ Web3.Storage space set:", space.did().toString());
+        // console.log("✅ Web3.Storage space set:", space.did().toString());
 
-        // ✅ Store the initialized client
-        setClient(w3Client);
+        // // ✅ Store the initialized client
+        // setClient(w3Client);
       } catch (err) {
         console.error("❌ Error initializing Web3.Storage:", err);
       }

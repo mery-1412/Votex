@@ -1,18 +1,33 @@
-import React,{useState,useEffect,useContext} from "react";
-import Image from 'next/image';
-import Countdown from 'react-countdown'
-
+import React, { useContext } from "react";
 import { VotingContext } from "../context/Voter";
-import Style from '../styles/index.module.css';
 import Card from '../components/card/card';
 import image from "../assets/candidate-1.jpg"
+import NavBar from '@/components/NavBar/NavBar';
+import Heroo from "@/components/HeroSection/Heroo";
+import About from '@/components/About/About';
+import Contact from '@/components/Contact/Contact';
+import Footer from '@/components/Footer/Footer';
+import OnlyPublic from "./protectingRoutes/OnlyPublic";
 
 
-const index = ()=>{
+const Index = () => {
+  const { votingTitle } = useContext(VotingContext);
 
-  const {votingTitle}  = useContext(VotingContext)
-  return <div>{votingTitle}</div>;
-  
+  return (
+    <OnlyPublic>
+    <div>
+      {/* Display the voting title from context */}
+      {votingTitle}
+
+      {/* Render components */}
+      <NavBar />
+      <Heroo />
+      <About />
+      <Contact />
+      <Footer />
+    </div>
+    </OnlyPublic>
+  );
 };
 
-export default index;
+export default Index;
