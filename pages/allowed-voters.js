@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { useDropzone } from "react-dropzone";
 import Image from "next/image";
 import { VotingContext } from "../context/Voter";
-import Style from "../styles/allowedVoter.module.css";
+//import Style from "../styles/allowedVoter.module.css";
 import Button from "../components/Button/Button";
 import Input from "../components/Input/Input";
 
@@ -99,7 +99,7 @@ const allowedVoters = () => {
           <Input
             inputType="text"
             title="Parti"
-            placeholder="candidate Party"
+            placeholder="candidate Parti"
             handleClick={(e) =>
               setFormInput({ ...formInput, parti: e.target.value })
             }

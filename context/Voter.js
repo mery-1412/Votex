@@ -9,8 +9,13 @@ import * as Proof from "@web3-storage/w3up-client/proof";
 import { Signer } from "@web3-storage/w3up-client/principal/ed25519";
 import { VotingAddress, VotingAddressABI } from "./constants";
 import { create } from '@web3-storage/w3up-client';
+import * as UcantoClient from '@ucanto/client'
+import { HTTP } from '@ucanto/transport'
+import * as CAR from '@ucanto/transport/car'
 //import { filesFromPaths } from 'files-from-path'
 
+
+  
 // Create Voting Context
 export const VotingContext = createContext();
 
@@ -69,44 +74,69 @@ export const VotingProvider = ({ children }) => {
   // **Initialize Web3.Storage Client**
   useEffect(() => {
     const setupClient = async () => {
-      const client = await create()
-      await client.login('akilachiali@gmail.com')
-      await client.setCurrentSpace("did:key:z6MkvpkRWaXnL31KJ9z7dEpMbS1ipTHHbWkBiD8q8hy92nsq"
-      ) // select the relevant Space DID that is associated with your account
-
-
-      console.log("🟡 Setting up Web3.Storage client...");
-
+      console.log("🚀 setupClient is being called..."); 
       try {
-        // ✅ Step 1: Load the private key (KEY) for authentication
-        const principal = Signer.parse(process.env.NEXT_PUBLIC_PRIVATEKEY);
-        const store = new StoreMemory();
-        const w3Client = await Client.create({ principal, store });
-
-
-        console.log("✅ Web3.Storage client initialized.");
-
+        console.log("Initializing Web3.Storage client...");
+        const client = await create();
         
-        if (!process.env.NEXT_PUBLIC_PROOF) {
-          throw new Error("❌ UCAN Proof is missing in environment variables.");
-        }
-        
-        // ✅ Step 2: Load the UCAN proof (PROOF) to gain access
-        // const proof = await Proof.parse(Buffer.from(process.env.NEXT_PUBLIC_PROOF).toString('base64'));
-        // const space = await w3Client.addSpace(proof);
-        // await w3Client.setCurrentSpace(space.did());
+        console.log("Logging in...");
+        const account = await client.login('akilachiali@gmail.com');
+        console.log("Logged in successfully:", account);
+  
+        console.log("Setting up Storacha Freeway Gateway...");
+        const id = await client.did(); 
+        console.log("ID IS " , id);
+        const storachaGateway = UcantoClient.connect({
+          id: id,
+          codec: CAR.outbound,
+          channel: HTTP.open({ url: new URL('https://w3s.link') }),
+        });
+        console.log("✅ Storacha Freeway Gateway connected:", storachaGateway);
+        console.log("Creating space...");
 
-        // console.log("✅ Web3.Storage space set:", space.did().toString());
-
-        // // ✅ Store the initialized client
-        // setClient(w3Client);
-      } catch (err) {
-        console.error("❌ Error initializing Web3.Storage:", err);
+        const space = await client.createSpace("VotexFinal", { 
+          account,
+          authorizeGatewayServices: [storachaGateway],
+        });
+        console.log("Space created successfully:", space);
+      } catch (error) {
+        console.error("Error during setup:", error);
       }
-    };
+    }
 
     setupClient();
   }, []);
+
+ 
+  ///upload file heeeeeeeeeeeeerrrrrrrrrrrrrrreeeeeeeeeee
+  useEffect(() => {
+    console.log("🟢 useEffect triggered...");
+    const uploadFiles = async () => {
+
+      console.log("✅ calling upload file")
+      try{
+
+        const files = [
+          new File(["some-file-content"], "./testfile.txt"),
+          
+        ];
+
+        const directoryCid = await client.uploadDirectory(files);
+        console.log("✅ Directory uploaded successfully! CID:", directoryCid);
+        console.log("🔗 View on IPFS:", `https://w3s.link/ipfs/${directoryCid}`);
+      }
+      catch (error) {
+        console.error("❌ Error uploading directory:", error);
+      }
+       
+    };
+  
+    uploadFiles();
+  }, []);
+
+  
+   
+  
 
   // **Upload File to IPFS via Web3.Storage**
   const uploadToIPFS = async (file) => {
@@ -145,7 +175,7 @@ export const VotingProvider = ({ children }) => {
         connectWallet,
         checkIfWalletIsConnected,
         connectSmartContract,
-        uploadToIPFS,
+        //uploadToIPFS,
         currentAccount,
       }}
     >
