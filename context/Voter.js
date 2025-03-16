@@ -93,20 +93,39 @@ export const VotingProvider = ({ children }) => {
       });
 
       console.log("✅ Storacha Freeway Gateway connected:", storachaGateway);
-      console.log("Creating space...");
+      console.log("Retrieving existing spaces...");
+      const spaces = await client.spaces(); // Get available spaces
 
-      const space = await client.createSpace("new2", {
+      let spacename;
+      const targetSpaceName = "VotexSpace"; 
+      // ✅ Find space by name
+      spacename= spaces.find((s) => s.name === targetSpaceName);
+
+    if (spacename) {
+      await client.setCurrentSpace(spacename.did());
+      setClient(client); 
+      console.log(`✅ Using existing space: ${spacename.did()}`);
+      
+
+    }else{
+
+      console.log(`❌ Space "${targetSpaceName}" not found. Creating a new one...`);
+
+      const space = await client.createSpace(targetSpaceName, {
         account,
         authorizeGatewayServices: [storachaGateway],
       });
+    
 
       console.log("Current Space Setting ");
       await client.setCurrentSpace(space.did());
       setClient(client); // ✅ Ensure client is updated
       console.log("Space created successfully:", space);
+    }
     } catch (error) {
       console.error("❌ Error during setup:", error);
     }
+    
   };
 
   // **Upload Files to IPFS**
@@ -115,11 +134,10 @@ export const VotingProvider = ({ children }) => {
       console.error("⚠️ Web3.Storage client is not initialized yet.");
       return;
     }
-
     console.log("✅ Calling uploadFiles...");
     try {
       console.log("📂 Preparing files...");
-      const files = [new File(["some-file-content"], "testfile.txt")];
+      const files = [new File(["some-content"], "testfile2.txt")];
 
       console.log("⏳ Uploading directory...");
       const directoryCid = await client.uploadDirectory(files);
