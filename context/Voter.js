@@ -78,7 +78,7 @@ export const VotingProvider = ({ children }) => {
       try {
         console.log("Initializing Web3.Storage client...");
         const client = await create();
-        
+        setClient(client)
         console.log("Logging in...");
         const account = await client.login('akilachiali@gmail.com');
         console.log("Logged in successfully:", account);
@@ -98,6 +98,8 @@ export const VotingProvider = ({ children }) => {
           account,
           authorizeGatewayServices: [storachaGateway],
         });
+        console.log("🚀 Current Space Setting ");
+        await client.setCurrentSpace(space.did());
         console.log("Space created successfully:", space);
       } catch (error) {
         console.error("Error during setup:", error);
@@ -112,29 +114,30 @@ export const VotingProvider = ({ children }) => {
   useEffect(() => {
     console.log("🟢 useEffect triggered...");
     const uploadFiles = async () => {
-
-      console.log("✅ calling upload file")
-      try{
-
+      console.log("✅ Calling uploadFiles...");
+      
+      if (!client) {
+        console.error("⚠️ Web3.Storage client is not initialized yet.");
+        return;
+      }
+  
+      try {
+        console.log("📂 Preparing files...");
         const files = [
-          new File(["some-file-content"], "./testfile.txt"),
-          
+          new File(["some-file-content"], "testfile.txt"), // ✅ No "./"
         ];
-
+  
+        console.log("⏳ Uploading directory...");
         const directoryCid = await client.uploadDirectory(files);
         console.log("✅ Directory uploaded successfully! CID:", directoryCid);
         console.log("🔗 View on IPFS:", `https://w3s.link/ipfs/${directoryCid}`);
-      }
-      catch (error) {
+      } catch (error) {
         console.error("❌ Error uploading directory:", error);
       }
-       
     };
   
     uploadFiles();
   }, []);
-
-  
    
   
 
