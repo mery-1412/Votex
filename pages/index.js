@@ -1,4 +1,6 @@
 import React, { useContext } from "react";
+import App from 'next/app';
+
 import { VotingContext } from "../context/Voter";
 import NavBar from '@/components/NavBar/NavBar';
 import Heroo from "@/components/HeroSection/Heroo";
@@ -6,7 +8,6 @@ import About from '@/components/About/About';
 import Contact from '@/components/Contact/Contact';
 import Footer from '@/components/Footer/Footer';
 import OnlyPublic from "./protectingRoutes/OnlyPublic";
-
 const Index = () => {
   const { votingTitle } = useContext(VotingContext);
 

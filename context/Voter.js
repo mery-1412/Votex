@@ -1,31 +1,208 @@
-//api calls to pass the data how smart contract interacts 
-
-import React , {useState,useEffect, Children} from 'react';
-import  Web3Modal  from "web3modal";
+// Import necessary dependencies
+import React, { useState, useEffect, createContext } from "react";
 import { ethers } from "ethers";
-import {create as ipfsHttpClient} from "ipfs-http-client"
-import axios from 'axios';
-import { useRouter } from 'next/router';
+import { useRouter } from "next/router";
+import Web3Modal from "web3modal";
+import * as Client from "@web3-storage/w3up-client";
+import { StoreMemory } from "@web3-storage/w3up-client/stores/memory";
+import * as Proof from "@web3-storage/w3up-client/proof";
+import { Signer } from "@web3-storage/w3up-client/principal/ed25519";
+import { VotingAddress, VotingAddressABI } from "./constants";
+import { create } from '@web3-storage/w3up-client';
+import * as UcantoClient from '@ucanto/client'
+import { HTTP } from '@ucanto/transport'
+import * as CAR from '@ucanto/transport/car'
+//import { filesFromPaths } from 'files-from-path'
 
-//import interne from code 
 
-import { VotingAddress,VotingAddressABI } from './constants';
+  
+// Create Voting Context
+export const VotingContext = createContext();
 
-const client = ipfsHttpClient('https://ipfs.infura.io:5001/api/v0')
+// Voting Provider Component
+export const VotingProvider = ({ children }) => {
+  const votingTitle = "First Smart Contract Dapp";
+  const router = useRouter();
+  const [currentAccount, setCurrentAccount] = useState("");
+  const [error, setError] = useState("");
+  const [client, setClient] = useState(null); // ✅ Web3.Storage client state
 
-const fetchContract = (signerOrProvider) =>
-     new ethers.Contract(VotingAddress,VotingAddressABI ,signerOrProvider);
+  // **Connect Wallet**
+  const connectWallet = async () => {
+    if (!window.ethereum) return setError("Install MetaMask first!");
+    try {
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      setCurrentAccount(accounts[0]); // Save connected account
+      console.log("✅ Wallet connected:", accounts[0]);
+    } catch (err) {
+      console.error("❌ Error connecting wallet:", err);
+    }
+  };
 
+  // **Check if Wallet is Connected**
+  const checkIfWalletIsConnected = async () => {
+    if (!window.ethereum) return setError("Install MetaMask first!");
+    const accounts = await window.ethereum.request({ method: "eth_accounts" });
+    if (accounts.length) {
+      setCurrentAccount(accounts[0]);
+    } else {
+      setError("Connect MetaMask and reload the page.");
+    }
+  };
 
-    export const VotingContext = React.createContext();
+  // **Fetch Smart Contract**
+  const fetchContract = (signerOrProvider) =>
+    new ethers.Contract(VotingAddress, VotingAddressABI, signerOrProvider);
 
-    export const VotingProvider = ({children}) =>{
+  // **Connect to Smart Contract**
+  const connectSmartContract = async () => {
+    try {
+      const web3Modal = new Web3Modal();
+      const provider = await web3Modal.connect();
+      const web3Provider = new ethers.providers.Web3Provider(provider);
+      const signer = web3Provider.getSigner();
+      const contract = fetchContract(signer);
+      console.log("✅ Smart Contract Connected:", contract);
+      return contract;
+    } catch (error) {
+      console.error("❌ Error connecting to smart contract:", error);
+    }
+  };
 
-         const votingTitle= ''
-        return  <VotingContext.Provider value={{votingTitle}}>{children}</VotingContext.Provider>
-        
+  // **Setup Web3.Storage Client**
+  const setupClient = async () => {
+    console.log("🚀 setupClient is being called...");
+    try {
+      console.log("Initializing Web3.Storage client...");
+      const client = await create();
+      setClient(client);
+      console.log("Logging in...");
+      const account = await client.login("akilachiali@gmail.com");
+      console.log("Logged in successfully:", account);
+
+      console.log("Setting up Storacha Freeway Gateway...");
+      const id = await client.did();
+      console.log("ID IS ", id);
+
+      const storachaGateway = UcantoClient.connect({
+        id: id,
+        codec: CAR.outbound,
+        channel: HTTP.open({ url: new URL("https://w3s.link") }),
+      });
+
+      console.log("✅ Storacha Freeway Gateway connected:", storachaGateway);
+      console.log("Retrieving existing spaces...");
+      const spaces = await client.spaces(); // Get available spaces
+
+      let spacename;
+      const targetSpaceName = "VotexSpace"; 
+      // ✅ Find space by name
+      spacename= spaces.find((s) => s.name === targetSpaceName);
+
+    if (spacename) {
+      await client.setCurrentSpace(spacename.did());
+      setClient(client); 
+      console.log(`✅ Using existing space: ${spacename.did()}`);
+      
+
+    }else{
+
+      console.log(`❌ Space "${targetSpaceName}" not found. Creating a new one...`);
+
+      const space = await client.createSpace(targetSpaceName, {
+        account,
+        authorizeGatewayServices: [storachaGateway],
+      });
+    
+
+      console.log("Current Space Setting ");
+      await client.setCurrentSpace(space.did());
+      setClient(client); // ✅ Ensure client is updated
+      console.log("Space created successfully:", space);
+    }
+    } catch (error) {
+      console.error("❌ Error during setup:", error);
+    }
+    
+  };
+
+  // **Upload Files to IPFS**
+  const uploadFiles = async () => {
+    if (!client) {
+      console.error("⚠️ Web3.Storage client is not initialized yet.");
+      return;
+    }
+    console.log("✅ Calling uploadFiles...");
+    try {
+      console.log("📂 Preparing files...");
+      const files = [new File(["some-content"], "testfile2.txt")];
+
+      console.log("⏳ Uploading directory...");
+      const directoryCid = await client.uploadDirectory(files);
+      console.log("✅ Directory uploaded successfully! CID:", directoryCid);
+      console.log("🔗 View on IPFS:", `https://w3s.link/ipfs/${directoryCid}`);
+    } catch (error) {
+      console.error("❌ Error uploading directory:", error);
+    }
+  };
+   
+  
+
+  // **Upload File to IPFS via Web3.Storage**
+  // const uploadToIPFS = async (file) => {
+  //   if (!client) {
+  //     console.error("⚠️ Web3.Storage client is not initialized.");
+  //     return null;
+  //   }
+  //   try {
+  //     console.log("📤 Uploading file to IPFS...");
+  //     const cid = await client.upload(file); // Upload the file
+  //     const url = `https://w3s.link/ipfs/${cid}`;
+  //     console.log("✅ Uploaded File URL:", url);
+  //     return url;
+  //   } catch (error) {
+  //     console.error("❌ Error uploading file to IPFS:", error);
+  //   }
+  // };
+
+  // **Auto-connect on Page Load**
+  useEffect(() => {
+    const initialize = async () => {
+      await connectWallet(); // Connect wallet on load
+      if (currentAccount) {
+        await connectSmartContract(); // Connect contract if wallet is connected
+      } else {
+        console.log("⚠️ Wallet not connected. Connect wallet first.");
+      }
     };
+    initialize();
+  }, [currentAccount]);
+ // **Run setupClient on Mount**
+ useEffect(() => {
+  setupClient();
+}, []);
 
-
-
-
+// **Call uploadFiles when client is ready**
+useEffect(() => {
+  if (client) {
+    uploadFiles();
+  }
+}, [client]);
+  return (
+    <VotingContext.Provider
+      value={{
+        votingTitle,
+        connectWallet,
+        checkIfWalletIsConnected,
+        connectSmartContract,
+        uploadFiles,
+        //uploadToIPFS,
+        currentAccount,
+      }}
+    >
+      {children}
+    </VotingContext.Provider>
+  );
+};

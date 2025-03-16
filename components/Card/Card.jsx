@@ -1,4 +1,6 @@
-import React from 'react'
+
+import React from "react";
+ 
 import {Ethereum} from 'lucide-react'
 const Card = () => {
   return (
@@ -39,3 +41,4 @@ const Card = () => {
 }
 
 export default Card
+

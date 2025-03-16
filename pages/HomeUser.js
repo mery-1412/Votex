@@ -1,3 +1,4 @@
+
 import React from 'react'
 import RequireAuth from './protectingRoutes/RequireAuth';
 import UserNavBar from "../components/NavBar/UserNavBar"
@@ -18,6 +19,7 @@ const HomeUser = () => {
     <Footer/>
     
      
+
 
     </RequireAuth>
     
