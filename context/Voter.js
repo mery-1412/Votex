@@ -71,95 +71,83 @@ export const VotingProvider = ({ children }) => {
     }
   };
 
-  // **Initialize Web3.Storage Client**
-  useEffect(() => {
-    const setupClient = async () => {
-      console.log("🚀 setupClient is being called..."); 
-      try {
-        console.log("Initializing Web3.Storage client...");
-        const client = await create();
-        setClient(client)
-        console.log("Logging in...");
-        const account = await client.login('akilachiali@gmail.com');
-        console.log("Logged in successfully:", account);
-  
-        console.log("Setting up Storacha Freeway Gateway...");
-        const id = await client.did(); 
-        console.log("ID IS " , id);
-        const storachaGateway = UcantoClient.connect({
-          id: id,
-          codec: CAR.outbound,
-          channel: HTTP.open({ url: new URL('https://w3s.link') }),
-        });
-        console.log("✅ Storacha Freeway Gateway connected:", storachaGateway);
-        console.log("Creating space...");
+  // **Setup Web3.Storage Client**
+  const setupClient = async () => {
+    console.log("🚀 setupClient is being called...");
+    try {
+      console.log("Initializing Web3.Storage client...");
+      const client = await create();
+      setClient(client);
+      console.log("Logging in...");
+      const account = await client.login("akilachiali@gmail.com");
+      console.log("Logged in successfully:", account);
 
-        const space = await client.createSpace("VotexFinal", { 
-          account,
-          authorizeGatewayServices: [storachaGateway],
-        });
-        console.log("Current Space Setting ");
+      console.log("Setting up Storacha Freeway Gateway...");
+      const id = await client.did();
+      console.log("ID IS ", id);
 
-        await client.setCurrentSpace(space.did());
-        setClient(client);
-        console.log("Space created successfully:", space);
-      } catch (error) {
-        console.error("Error during setup:", error);
-      }
+      const storachaGateway = UcantoClient.connect({
+        id: id,
+        codec: CAR.outbound,
+        channel: HTTP.open({ url: new URL("https://w3s.link") }),
+      });
+
+      console.log("✅ Storacha Freeway Gateway connected:", storachaGateway);
+      console.log("Creating space...");
+
+      const space = await client.createSpace("new2", {
+        account,
+        authorizeGatewayServices: [storachaGateway],
+      });
+
+      console.log("Current Space Setting ");
+      await client.setCurrentSpace(space.did());
+      setClient(client); // ✅ Ensure client is updated
+      console.log("Space created successfully:", space);
+    } catch (error) {
+      console.error("❌ Error during setup:", error);
     }
+  };
 
-    setupClient();
-  }, []);
-
- 
-  ///upload file heeeeeeeeeeeeerrrrrrrrrrrrrrreeeeeeeeeee
-  useEffect(() => {
-    console.log("🟢 useEffect triggered...");
+  // **Upload Files to IPFS**
+  const uploadFiles = async () => {
     if (!client) {
       console.error("⚠️ Web3.Storage client is not initialized yet.");
       return;
     }
-    const uploadFiles = async () => {
-      console.log("✅ Calling uploadFiles...");
-      
-     
-  
-      try {
-        console.log("📂 Preparing files...");
-        const files = [
-          new File(["some-file-content"], "testfile.txt"), // ✅ No "./"
-        ];
-  
-        console.log("⏳ Uploading directory...");
-        const directoryCid = await client.uploadDirectory(files);
-        console.log("✅ Directory uploaded successfully! CID:", directoryCid);
-        console.log("🔗 View on IPFS:", `https://w3s.link/ipfs/${directoryCid}`);
-      } catch (error) {
-        console.error("❌ Error uploading directory:", error);
-      }
-    };
-  
-    uploadFiles();
-  }, [client]);
+
+    console.log("✅ Calling uploadFiles...");
+    try {
+      console.log("📂 Preparing files...");
+      const files = [new File(["some-file-content"], "testfile.txt")];
+
+      console.log("⏳ Uploading directory...");
+      const directoryCid = await client.uploadDirectory(files);
+      console.log("✅ Directory uploaded successfully! CID:", directoryCid);
+      console.log("🔗 View on IPFS:", `https://w3s.link/ipfs/${directoryCid}`);
+    } catch (error) {
+      console.error("❌ Error uploading directory:", error);
+    }
+  };
    
   
 
   // **Upload File to IPFS via Web3.Storage**
-  const uploadToIPFS = async (file) => {
-    if (!client) {
-      console.error("⚠️ Web3.Storage client is not initialized.");
-      return null;
-    }
-    try {
-      console.log("📤 Uploading file to IPFS...");
-      const cid = await client.upload(file); // Upload the file
-      const url = `https://w3s.link/ipfs/${cid}`;
-      console.log("✅ Uploaded File URL:", url);
-      return url;
-    } catch (error) {
-      console.error("❌ Error uploading file to IPFS:", error);
-    }
-  };
+  // const uploadToIPFS = async (file) => {
+  //   if (!client) {
+  //     console.error("⚠️ Web3.Storage client is not initialized.");
+  //     return null;
+  //   }
+  //   try {
+  //     console.log("📤 Uploading file to IPFS...");
+  //     const cid = await client.upload(file); // Upload the file
+  //     const url = `https://w3s.link/ipfs/${cid}`;
+  //     console.log("✅ Uploaded File URL:", url);
+  //     return url;
+  //   } catch (error) {
+  //     console.error("❌ Error uploading file to IPFS:", error);
+  //   }
+  // };
 
   // **Auto-connect on Page Load**
   useEffect(() => {
@@ -173,7 +161,17 @@ export const VotingProvider = ({ children }) => {
     };
     initialize();
   }, [currentAccount]);
+ // **Run setupClient on Mount**
+ useEffect(() => {
+  setupClient();
+}, []);
 
+// **Call uploadFiles when client is ready**
+useEffect(() => {
+  if (client) {
+    uploadFiles();
+  }
+}, [client]);
   return (
     <VotingContext.Provider
       value={{
@@ -181,6 +179,7 @@ export const VotingProvider = ({ children }) => {
         connectWallet,
         checkIfWalletIsConnected,
         connectSmartContract,
+        uploadFiles,
         //uploadToIPFS,
         currentAccount,
       }}
