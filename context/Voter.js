@@ -98,8 +98,10 @@ export const VotingProvider = ({ children }) => {
           account,
           authorizeGatewayServices: [storachaGateway],
         });
-        console.log("🚀 Current Space Setting ");
+        console.log("Current Space Setting ");
+
         await client.setCurrentSpace(space.did());
+        setClient(client);
         console.log("Space created successfully:", space);
       } catch (error) {
         console.error("Error during setup:", error);
@@ -113,13 +115,14 @@ export const VotingProvider = ({ children }) => {
   ///upload file heeeeeeeeeeeeerrrrrrrrrrrrrrreeeeeeeeeee
   useEffect(() => {
     console.log("🟢 useEffect triggered...");
+    if (!client) {
+      console.error("⚠️ Web3.Storage client is not initialized yet.");
+      return;
+    }
     const uploadFiles = async () => {
       console.log("✅ Calling uploadFiles...");
       
-      if (!client) {
-        console.error("⚠️ Web3.Storage client is not initialized yet.");
-        return;
-      }
+     
   
       try {
         console.log("📂 Preparing files...");
@@ -137,7 +140,7 @@ export const VotingProvider = ({ children }) => {
     };
   
     uploadFiles();
-  }, []);
+  }, [client]);
    
   
 
