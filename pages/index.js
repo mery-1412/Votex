@@ -1,6 +1,4 @@
 import React, { useContext } from "react";
-import App from 'next/app';
-
 import { VotingContext } from "../context/Voter";
 import NavBar from '@/components/NavBar/NavBar';
 import Heroo from "@/components/HeroSection/Heroo";
