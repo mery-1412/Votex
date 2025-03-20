@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.7.0",
+    "@pinata/sdk": "^2.1.0",
     "@web3-storage/w3up-client": "^17.2.0",
     "assert": "^2.1.0",
     "axios": "^1.8.2",
