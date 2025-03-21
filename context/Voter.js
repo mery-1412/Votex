@@ -79,7 +79,7 @@ export const VotingProvider = ({ children }) => {
       const client = await create();
       setClient(client);
       console.log("Logging in...");
-      const account = await client.login("akilachiali@gmail.com");
+      const account = await client.login("meriemeaitchabane04@gmail.com");
       console.log("Logged in successfully:", account);
 
       console.log("Setting up Storacha Freeway Gateway...");

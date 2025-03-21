@@ -35,7 +35,7 @@ const LoginAdmin = () => {
   } else {
     await checkAuth();
     alert("YAW LOGIIIIIIIIIIIIIIIIT")
-    router.push('/dashboard')
+    router.push('/admin/Dashboard')
 
    
   }

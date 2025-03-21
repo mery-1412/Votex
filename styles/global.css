@@ -30,13 +30,36 @@ html, body {
     transition: all 0.3s ease; 
 
   }
-  
+
 
   .gradient-border-button:hover {
     transform: scale(1.05); /* Slightly scale up on hover */
     box-shadow: 0 4px 15px rgba(192, 59, 250, 0.3); /* Add a subtle shadow */
   }
 
+
+  .gradient-border-button-black {
+    border: 2px solid transparent; 
+    border-image: linear-gradient(to right, rgb(192, 59, 250), rgb(66, 147, 234)) 1; /* Gradient border */
+    border-radius: 8px; 
+    color: black; 
+    padding: 0.5rem 1.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.gradient-border-button-black:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(192, 59, 250, 0.3); 
+}
+
+
+
+  
+  
   @keyframes float {
     0% {
       transform: translateY(0);
@@ -51,7 +74,8 @@ html, body {
       opacity: 1;
     }
   }
-  
+
+
   .animate-float {
     animation: float 3s infinite ease-in-out;
   }

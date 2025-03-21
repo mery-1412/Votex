@@ -3,7 +3,6 @@ import RequireAdmin from '../protectingRoutes/RequireAdmin'
 import { AuthContext } from '../context/AuthContext';
 import AdminSidebar from '@/components/NavBar/AdminNavBar';
 
-
 const Dashboard = () => {
     const {  logout } = useContext(AuthContext);
   return (
