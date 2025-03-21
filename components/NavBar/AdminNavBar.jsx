@@ -17,7 +17,7 @@ const AdminSidebar = () => {
 
   const menuItems = [
     { label: "Dashboard", icon: <LayoutDashboard size={20} />, href: "/dashboard" },
-    { label: "Candidates", icon: <Users size={20} />, href: "/dashboard/users" },
+    { label: "Candidates", icon: <Users size={20} />, href: "/dashboard/candidates" },
     { label: "Sessions", icon: <Settings size={20} />, href: "/dashboard/settings" },
   ];
 
