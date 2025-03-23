@@ -1,21 +1,17 @@
 const hre = require("hardhat");
 
 async function main() {
+  const Create = await hre.ethers.getContractFactory("Create"); // Call contract named "Create"
+  const create = await Create.deploy();
 
-const Create = await hre.ethers.getContractFactory("Create"); //call contact names Create 
-const create = await Create.deploy();
+  await create.deployed(); // ✅ Use this for ethers v5
 
-await create.waitForDeployment();
+  const address = create.address; // ✅ Get contract address directly in ethers v5
 
-//console.log("Yes it is me ,Lock with 1 ETH deployed to:", create.address);
-
-const address = await create.getAddress();  
-
-console.log("Contract deployed to:", address);
-    
+  console.log("Contract deployed to:", address);
 }
 
-main().catch((error)=> {
-   console.error(error);
-   process.exitCode=1; 
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
 });

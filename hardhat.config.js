@@ -1,5 +1,8 @@
 //require("@nomicfoundation/hardhat-toolbox");
 
+require("@nomiclabs/hardhat-ethers");
+require("dotenv").config();
+
 module.exports = {
   solidity: {
     version: "0.8.28", 
@@ -12,10 +15,11 @@ module.exports = {
     }
   }, 
 
-  networks: {  
-    hardhat: {
-      chainId: 1337,
+  networks: {
+    volta: {
+      url: process.env.API_URL,
+      accounts: [process.env.PRIVATE_KEY],
+      chainId: 73799, // Volta Testnet Chain ID
     },
-   
   },
 };

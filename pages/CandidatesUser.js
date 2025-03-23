@@ -1,0 +1,73 @@
+import { useEffect, useState,useContext } from "react";
+import { Card } from "@/components/Card/Card"; 
+import { useRouter } from "next/router";
+import { VotingContext } from "../context/Voter"; 
+import UserNavBar from "../components/NavBar/UserNavBar"
+import RequireAuth from "./protectingRoutes/RequireAuth";
+
+const CandidatesUser = () => {
+  const [candidates, setCandidates] = useState([]);
+  const { getAllCandidates } = useContext(VotingContext); 
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchCandidates = async () => {
+      try {
+        const data = await getAllCandidates();
+        if (data) {
+
+          const formattedCandidates = data.map(candidate => ({
+            id: candidate.candidateId,
+            name: candidate.name,
+            desc: candidate.party, 
+            imageUrl: `https://gateway.pinata.cloud/ipfs/${candidate.ipfs}`, 
+            address:candidate._address
+          }));
+          setCandidates(formattedCandidates);
+          console.log('data',formattedCandidates)
+        }
+      } catch (error) {
+        console.error("Error fetching candidates:", error);
+      }
+    };
+    fetchCandidates();
+  }, []);
+
+  const handleSeeMore = (candidate) => {
+    router.push({
+      pathname: `/CandDetUser`,
+      query: { address: candidate.address }, 
+    });
+  };
+  
+  return (
+    <RequireAuth>
+    <div className="">
+      <UserNavBar/>
+      <div className="flex h-screen">
+        
+      <div className="flex-1 p-6 overflow-auto transition-all duration-300 ml-20 mt-28">
+
+
+          <div
+        className="grid gap-6 grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {candidates.map((candidate, index) => (
+                          <Card
+                          key={`${candidate.id}-${index}`} 
+                          name={candidate.name}
+                          desc={candidate.desc}
+                          imageAdd={candidate.imageUrl}
+                          onClick={() => handleSeeMore(candidate)}
+                          
+                          />
+                        ))}
+          </div>
+
+        </div>
+      </div>
+    </div>
+    </RequireAuth>
+  );
+};
+
+export default CandidatesUser;

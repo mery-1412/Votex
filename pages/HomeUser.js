@@ -17,10 +17,6 @@ const HomeUser = () => {
     <About/>
     <Contact/>
     <Footer/>
-    
-     
-
-
     </RequireAuth>
     
   )

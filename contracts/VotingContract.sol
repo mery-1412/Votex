@@ -45,32 +45,35 @@ contract Create {
     }
 
     function setCandidate(
-        address _address,
-        string memory _age,
-        string memory _name,
-        string memory _image,
-        string memory _party,
-        string memory _ipfs
-    ) public {
-        require(votingOrganizer == msg.sender, "Only Organiser can add Candidates!");
+    address _address,
+    string memory _age,
+    string memory _name,
+    string memory _image,
+    string memory _party,
+    string memory _ipfs
+) public {
+    require(votingOrganizer == msg.sender, "Only Organiser can add Candidates!");
+    require(candidates[_address].candidateId == 0, "Candidate already exists!");
 
-        _candidateId.increment();
-        uint256 idNumber = _candidateId.current();
+    _candidateId.increment();
+    uint256 idNumber = _candidateId.current();
 
-        Candidate storage candidate = candidates[_address];
-        candidate.age = _age;
-        candidate.name = _name;
-        candidate.candidateId = idNumber;
-        candidate.image = _image;
-        candidate.party = _party;
-        candidate.voteCount = 0;
-        candidate._address = _address;
-        candidate.ipfs = _ipfs;
+    candidates[_address] = Candidate({
+        candidateId: idNumber,
+        age: _age,
+        name: _name,
+        image: _image,
+        party: _party,
+        voteCount: 0,
+        _address: _address,
+        ipfs: _ipfs
+    });
 
-        candidateAddress.push(_address);
-        
-        emit CandidateCreate(idNumber, _age, _name, _image, _party, 0, _address, _ipfs);
-    }
+    candidateAddress.push(_address); // Store unique address
+
+    emit CandidateCreate(idNumber, _age, _name, _image, _party, 0, _address, _ipfs);
+}
+
 
     function getCandidate() public view returns (address[] memory) {
         return candidateAddress;
@@ -97,6 +100,19 @@ contract Create {
         Candidate memory c = candidates[_address];
         return (c.age, c.name, c.candidateId, c.image, c.party, c.voteCount, c.ipfs, c._address);
     }
+
+function getAllCandidates() public view returns (Candidate[] memory) {
+    uint256 length = candidateAddress.length;
+    Candidate[] memory allCandidates = new Candidate[](length);
+
+    for (uint256 i = 0; i < length; i++) {
+        allCandidates[i] = candidates[candidateAddress[i]];
+    }
+
+    return allCandidates;
+}
+
+
 
     function setVotingPeriod(uint256 _start, uint256 _end) public {
         require(votingOrganizer == msg.sender, "Only the organizer can set the voting period!");

@@ -10,8 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-const AdminSidebar = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
   const { logout } = useContext(AuthContext);
   const router = useRouter();
 
@@ -29,7 +28,7 @@ const AdminSidebar = () => {
     <div
       className={`h-screen flex flex-col transition-all duration-300 ${isCollapsed ? "w-16" : "w-64"}`}
       style={{
-        background: "linear-gradient(to bottom, #6D28D9, #4C1D95)", // Gradient purple-blue background
+        background: "linear-gradient(to bottom, #3A2663, #4C1D95)", // Gradient purple-blue background
       }}
     >
       {/* Top Section: Logo */}
@@ -82,12 +81,13 @@ const AdminSidebar = () => {
 
       {/* Toggle Button */}
       <div className="flex justify-end p-4">
-        <button
+      <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="text-white hover:text-gray-200 transition-colors duration-200"
         >
           {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
+
       </div>
     </div>
   );

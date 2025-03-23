@@ -54,6 +54,10 @@ const Login = () => {
     <OnlyPublic>
     <div className="flex items-center justify-center min-h-screen bg-cover bg-center relative"   >
     <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+
+    <div className="absolute top-5 left-5 cursor-pointer" onClick={() => router.push("/")}>
+              <img src="assets/logo.png" alt="Logo" className="w-16 h-16 z-100" />
+            </div>
     <div className="relative w-96 p-8 bg-white bg-opacity-10 backdrop-blur-md rounded-lg border border-white border-opacity-30 text-white text-center">
       <h2 className="text-2xl mb-4">Log In</h2>
       <form onSubmit={handleSubmit} className="flex flex-col space-y-4">

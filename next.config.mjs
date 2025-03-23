@@ -16,6 +16,8 @@ const nextConfig = {
       { source: "/home-user", destination: "/HomeUser" },
       { source: "/dashboard", destination: "/admin/Dashboard" },
       { source: "/upload", destination: "/UploadFile" },
+      { source: "/CandDet/:id", destination: "/CandDetUser" },
+      { source: "/Candidates", destination: "/CandidatesUser" },
 
 
       

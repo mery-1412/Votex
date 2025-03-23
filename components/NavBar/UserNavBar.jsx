@@ -18,10 +18,10 @@ function NavBar() {
 
         {/* NAV LINKS FOR DESKTOP (Centered) */}
         <div className="hidden md:flex flex-1 justify-center space-x-6 text-white text-lg">
-        <Link href="#home" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Home</Link>
+        <Link href="/home-user" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Home</Link>
         <Link href="#about" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">About</Link>
-        <Link href="#about" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Vote</Link>
-        <Link href="#about" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Results</Link>
+        <Link href="/Candidates" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Candidate</Link>
+        <Link href="/results" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Results</Link>
         <Link href="#contact" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Contact</Link>
         </div>
 
