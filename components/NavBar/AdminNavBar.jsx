@@ -16,7 +16,7 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
 
   const menuItems = [
     { label: "Dashboard", icon: <LayoutDashboard size={20} />, href: "/dashboard" },
-    { label: "Candidates", icon: <Users size={20} />, href: "/dashboard/candidates" },
+    { label: "Candidates", icon: <Users size={20} />, href: "/admin/Candidates" },
     { label: "Sessions", icon: <Settings size={20} />, href: "/dashboard/settings" },
   ];
 
@@ -49,7 +49,7 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
             <div
               key={item.label}
               className={`flex items-center gap-4 p-3 cursor-pointer transition-all duration-200 ${
-                router.pathname === item.href ? "bg-white" : ""
+                router.pathname === item.href ? "bg-purple-800" : ""
               }`}
               onClick={() => router.push(item.href)}
             >

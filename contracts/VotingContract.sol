@@ -86,7 +86,7 @@ contract Create {
     function getCandidateData(address _address)
         public
         view
-        returns (
+        returns ( 
             string memory,
             string memory,
             uint256,

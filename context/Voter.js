@@ -135,6 +135,11 @@ export const VotingProvider = ({ children }) => {
       if (!contract) throw new Error("Smart contract connection failed!");
       const existingCandidate = await contract.getCandidateData(currentAccount);
       console.log("Existing candidate:", existingCandidate);
+      
+      const organizer = await contract.votingOrganizer();
+      console.log("Organizer Address in Contract:", organizer);
+      console.log("Your Wallet Address:", currentAccount);
+      
       const tx = await contract.setCandidate(
         newCandidateAddress, 
         age,
@@ -143,7 +148,9 @@ export const VotingProvider = ({ children }) => {
         party,
         ipfsHash
       );
-  
+      
+      console.log("Transaction sent:", tx.hash);
+
       await tx.wait(); 
   
       alert(" Candidate created successfully!");

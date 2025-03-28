@@ -1,48 +1,49 @@
 import { Card } from "@/components/Card/Card"; 
 import AdminSidebar from '@/components/NavBar/AdminNavBar';
-import React, { useState } from "react";
+import React, { useState, useContext, useEffect} from "react";
 import { AddProductDialog } from "@/components/AddProductDialog"; 
- 
+import { VotingContext } from "../../context/Voter"; 
+import { useRouter } from "next/router";
+
+
 
 
 const Candidates = () => {
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const candidatesData = [
-      {
-        id: 1,
-        name: "John Doe",
-        desc: "Software Engineer",
-        imageAdd: "",
-      },
-      {
-        id: 2,
-        name: "Jane Smith",
-        desc: "Product Manager",
-        imageAdd: "",
-      },
-      {
-        id: 3,
-        name: "Alice Johnson",
-        desc: "UI/UX Designer",
-        imageAdd: "",
-      },
-      {
-        id: 4,
-        name: "Alice Johnson",
-        desc: "UI/UX Designer",
-        imageAdd: "",
-      },{
-        id: 5,
-        name: "Alice Johnson",
-        desc: "UI/UX Designer",
-        imageAdd: "",
-      },{
-        id: 6,
-        name: "Alice Johnson",
-        desc: "UI/UX Designer",
-        imageAdd: "",
-      },
-    ];
+
+   const [candidates, setCandidates] = useState([]);
+   const { getAllCandidates } = useContext(VotingContext);  
+   const router = useRouter();
+
+     useEffect(() => {
+       const fetchCandidates = async () => {
+         try {
+           const data = await getAllCandidates();
+           if (data) {
+   
+             const formattedCandidates = data.map(candidate => ({
+               id: candidate.candidateId,
+               name: candidate.name,
+               desc: candidate.party, 
+               imageUrl: `https://gateway.pinata.cloud/ipfs/${candidate.ipfs}`, 
+               address:candidate._address
+             }));
+             setCandidates(formattedCandidates);
+             console.log('data',formattedCandidates)
+           }
+         } catch (error) {
+           console.error("Error fetching candidates:", error);
+         }
+       };
+       fetchCandidates();
+     }, []);
+   
+     const handleSeeMore = (candidate) => {
+       router.push({
+         pathname: `/admin/CandDet`,
+         query: { address: candidate.address }, 
+       });
+     };
   
   return (
     <div className="dashboard-page">
@@ -69,14 +70,16 @@ const Candidates = () => {
           isCollapsed ? "grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4": "grid-cols-1  lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3"
         }`}
       >
-            {candidatesData.map((candidate) => (
-              <Card
-                key={candidate.id}
-                name={candidate.name}
-                desc={candidate.desc}
-                imageUrl={candidate.imageUrl}
-              />
-            ))}
+             {candidates.map((candidate, index) => (
+                          <Card
+                          key={`${candidate.id}-${index}`} 
+                          name={candidate.name}
+                          desc={candidate.desc}
+                          imageAdd={candidate.imageUrl}
+                          onClick={() => handleSeeMore(candidate)}
+                          
+                          />
+                        ))}
           </div>
 
         </div>

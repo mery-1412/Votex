@@ -7,7 +7,7 @@ import RequireAuth from "./protectingRoutes/RequireAuth";
 
 const CandidatesUser = () => {
   const [candidates, setCandidates] = useState([]);
-  const { getAllCandidates } = useContext(VotingContext); 
+  const { getAllCandidates } = useContext(VotingContext);  
   const router = useRouter();
 
   useEffect(() => {
