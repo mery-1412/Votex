@@ -4,10 +4,10 @@ import { CButton, CCard, CCardBody, CCardImage, CCardText, CCardTitle } from "@c
 export const Card = ({ name, desc, imageAdd, onClick }) => {
   return (
     <CCard 
-      className="w-80 h-[500px] shadow-xl hover:shadow-2xl transition-shadow duration-300 rounded-lg overflow-hidden" 
+      className="w-80 h-[600px] shadow-xl hover:shadow-2xl transition-shadow duration-300 rounded-lg overflow-hidden" 
       style={{ backgroundColor: "#3A2663" }}
     >
-      <div className="h-72 overflow-hidden">
+      <div className="h-96 overflow-hidden">
         <CCardImage 
           orientation="top" 
           src={imageAdd} 
@@ -15,7 +15,7 @@ export const Card = ({ name, desc, imageAdd, onClick }) => {
         />
       </div>
       
-      <CCardBody className="p-6 flex flex-col justify-between h-[calc(500px-12rem)]">
+      <CCardBody className="p-6 flex flex-col justify-between h-[calc(500px-18rem)]">
         <div>
           <CCardTitle style={{ color: "#FFFFFF" }} className="text-xl font-semibold">
             {name}
