@@ -41,7 +41,6 @@ const Login = () => {
 
   } else {
     await checkAuth();
-    alert("YAW LOGIIIIIIIIIIIIIIIIT")
     router.push('/home-user')
 
   }

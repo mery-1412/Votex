@@ -1,4 +1,3 @@
-// export default CandDetUser;
 import React, { useState, useEffect, useContext } from "react";
 import UserNavBar from "../components/NavBar/UserNavBar";
 import { VotingContext } from "../context/Voter"; 
@@ -8,8 +7,10 @@ import RequireAuth from "./protectingRoutes/RequireAuth";
 const CandDetUser = () => { 
   const { getCandidateDetails, vote } = useContext(VotingContext);
   const [candidate, setCandidate] = useState(null);
-  const [hasVoted, setHasVoted] = useState(false); // Track if user has voted
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false); // Show success popup
+  const [hasVoted, setHasVoted] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const router = useRouter();
   const { address } = router.query;
 
@@ -21,35 +22,84 @@ const CandDetUser = () => {
 
   const fetchCandidateData = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const data = await getCandidateDetails(address);
       console.log("Candidate Details:", data);
 
-      if (data) {
-        setCandidate({
-          name: data.name,
-          age: data.age,
-          party: data.party,
-          image: data.imageUrl,
-          address: data.address,
-        });
+      if (!data || !data.name) {
+        throw new Error("Candidate not found");
       }
+
+      setCandidate({
+        name: data.name,
+        age: data.age,
+        party: data.party,
+        image: data.imageUrl,
+        address: data.address,
+      });
     } catch (error) {
       console.error("Failed to fetch candidate details", error);
+      setError(error.message || "Failed to load candidate details");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleVote = async () => {
     try {
+      setLoading(true);
       await vote(candidate.address);
-      setHasVoted(true); // Disable the button after voting
-      setShowSuccessPopup(true); // Show success message
+      setHasVoted(true);
+      setShowSuccessPopup(true);
     } catch (error) {
       console.error("Voting failed", error);
+      setError("Failed to submit vote. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (!candidate) {
-    return <div className="text-white text-center">Loading candidate details...</div>;
+  const handleRetry = () => {
+    fetchCandidateData();
+  };
+
+  if (loading && !candidate) {
+    return (
+      <RequireAuth>
+        <div className="flex items-center justify-center min-h-screen relative">
+          <UserNavBar />
+          <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+          <div className="relative w-[90%] max-w-6xl p-12 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-white text-lg">Loading candidate details...</p>
+            </div>
+          </div>
+        </div>
+      </RequireAuth>
+    );
+  }
+
+  if (error) {
+    return (
+      <RequireAuth>
+        <div className="flex items-center justify-center min-h-screen relative">
+          <UserNavBar />
+          <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+          <div className="relative w-[90%] max-w-6xl p-12 bg-white bg-opacity-10 backdrop-blur-md rounded-lg border border-white border-opacity-30 text-white flex flex-col items-center justify-center">
+            <h3 className="text-xl font-semibold text-red-400 mb-4">Error Loading Candidate</h3>
+            <p className="text-gray-200 mb-6">{error}</p>
+            <button
+              onClick={handleRetry}
+              className="gradient-border-button"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </RequireAuth>
+    );
   }
 
   return (
@@ -81,9 +131,9 @@ const CandDetUser = () => {
                 <button 
                   className={`gradient-border-button ${hasVoted ? "opacity-50 cursor-not-allowed" : ""}`} 
                   onClick={handleVote}
-                  disabled={hasVoted}
+                  disabled={hasVoted || loading}
                 >
-                  {hasVoted ? "VOTED" : "VOTE"}
+                  {loading ? "Processing..." : hasVoted ? "VOTED" : "VOTE"}
                 </button>
               </div>
             </div>

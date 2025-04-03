@@ -1,27 +1,42 @@
 "use client";
 
-import { Button, Modal, Label } from "flowbite-react";
+import { Modal, Label } from "flowbite-react";
 import { useState, useContext } from "react";
 import { VotingContext } from "../context/Voter"; 
+import { Popup } from "./Popup"
 
 export function AddProductDialog() {
   const [openModal, setOpenModal] = useState(false);
-  const { createCandidate, uploadToPinata, currentAccount } = useContext(VotingContext);
+  const { createCandidate, uploadToPinata, currentAccount , message,errMessage, setMessage, setErrMessage} = useContext(VotingContext);
   const [age, setAge] = useState("");
   const [name, setName] = useState("");
   const [image, setImage] = useState(null);
   const [party, setParty] = useState("");
   const [ipfs, setIpfs] = useState("");
   const [uploading, setUploading] = useState(false);
+  //err msgs
+  const [msg, setMsg] = useState("");
+  const [errpopupOpen, setErrpopupOpen] = useState(false);
+
+  // Transaction states
+  const [loading, setLoading] = useState(false);  // New loading state
+  const [success, setSuccess] = useState(false);  // Success state
+
 
   const handleUpload = async () => {
-    if (!image) return alert("❌ Select an image first!");
+    if (!image) {
+      setMsg("Upload an image first");
+      return; 
+    }
     setUploading(true);
+    setMsg("");
+    setErrMessage("");     
     try {
       const ipfsHash = await uploadToPinata(image);
       setIpfs(ipfsHash);
-      alert("✅ Image uploaded to IPFS: " + ipfsHash);
+
     } catch (error) {
+      setMsg("Error uploading to IPFS" );
       console.error("❌ Error uploading to IPFS:", error);
     }
     setUploading(false);
@@ -34,11 +49,12 @@ export function AddProductDialog() {
     if (!currentAccount) return alert("Connect wallet first!");
 
     try {
+      setLoading(true);
       const success = await createCandidate(age, name, `https://gateway.pinata.cloud/ipfs/${ipfs}`, party, ipfs);
       if (success) {
-        alert("✅ Candidate created successfully!");
+        setSuccess(true); 
+        setMsg("Candidate added successfully" );
         setOpenModal(false);
-
         setIpfs(false);
         setAge("");
         setName("");
@@ -46,23 +62,36 @@ export function AddProductDialog() {
         setParty("");
       }
     } catch (error) {
+      setSuccess(false);
+      setMsg("Error adding candidate" );
       console.error("❌ Error:", error);
+    }finally {
+      setLoading(false);  
     }
+
   };
 
   return (
     <>
+
+       <Popup message={message} isOpen={success} action={"Confirm"} onClose={() => setSuccess(false)} />
+
+
+
       <button className="gradient-border-button-black" onClick={() => setOpenModal(true)}>Add Candidate</button>
 
+  
       {/* Modal with Glassmorphism Effect */}
-      <Modal show={openModal} onClose={() => {setOpenModal(false);  setIpfs(false); }} size="xl">
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-lg">
+      <Modal show={openModal} onClose={() => {setOpenModal(false);  setIpfs(false); setMessage(""); setMsg(""); setErrMessage("");}} size="xl">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-lg z-50">
           {/* Modal Content */}
           <div className="bg-[#3A2663] backdrop-blur-2xl p-8 rounded-lg shadow-2xl border border-black/20 w-full max-w-lg">
             <Modal.Header>
               <h2 className="text-2xl font-semibold text-white text-center mb-2">Add a New Candidate</h2>
             </Modal.Header>
             <Modal.Body>
+            <h2 className="text-lg font-semibold text-purple-500 text-center mb-2">Make sure you are connected to the Admin Wallet</h2>
+
               <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Candidate Name */}
                 <div className="flex flex-col">
@@ -95,10 +124,28 @@ className="w-full p-2 border border-black/30 rounded-md bg-white/20 text-white p
                   {uploading ? "Uploading..." : "Upload Image to IPFS"}
                 </button>
                 {ipfs && <p className="text-green-400">Uploaded to IPFS</p>}
-              
+                {msg && (
+                  <p className="text-red-500 text-sm mt-2">{msg}</p>
+
+                )}  
+                {errMessage && (
+                  <p className="text-red-500 text-sm mt-2">{errMessage}</p>
+
+                )}  
+               {loading && (
+                  <div className="flex justify-center mt-4">
+                    <div className="animate-spin rounded-full border-t-4 border-b-4 border-purple-500 h-12 w-12"></div>
+                    <p className="ml-2 mt-4 text-white">Processing, waint a moment please...</p>
+                  </div>
+                )}
                 <Modal.Footer className="flex justify-end space-x-3">
                   <button type="submit" disabled={!ipfs} className="gradient-border-button">Create Candidate</button>
-                  <button onClick={() => setOpenModal(false)} className="gradient-border-button">Cancel</button>
+                  <button onClick={() => {
+                    setOpenModal(false)
+                    setMessage("");
+                    setMsg("");
+                    setErrMessage("");
+                    }} className="gradient-border-button">Cancel</button>
                 </Modal.Footer>
               </form>
             </Modal.Body>
