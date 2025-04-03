@@ -4,6 +4,7 @@ import { ethers } from "ethers";
 import Web3Modal from "web3modal";
 import axios from "axios";
 import { VotingAddress, VotingAddressABI } from "./constants";
+import { Vote } from "lucide-react";
 
 // Pinata API Keys
 const PINATA_API_KEY = "7aa86323c46359e68595";
@@ -21,14 +22,16 @@ export const VotingProvider = ({ children }) => {
   const randomWallet = ethers.Wallet.createRandom();const newCandidateAddress = randomWallet.address;
 
   // Connect Wallet
+  // Connect Wallet
   const connectWallet = async () => {
     if (!window.ethereum) return setError("Install MetaMask first!");
     try {
-      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const accounts = await provider.send("eth_requestAccounts", []);
       setCurrentAccount(accounts[0]);
       console.log("Wallet connected:", accounts[0]);
     } catch (err) {
-      console.error(" Error connecting wallet:", err);
+      console.error("Error connecting wallet:", err);
     }
   };
 
@@ -36,16 +39,16 @@ export const VotingProvider = ({ children }) => {
   const fetchContract = (signerOrProvider) =>
     new ethers.Contract(VotingAddress, VotingAddressABI, signerOrProvider);
 
+
   // Connect to Smart Contract
   const connectSmartContract = async () => {
     try {
       const web3Modal = new Web3Modal();
-      const provider = await web3Modal.connect();
-      const web3Provider = new ethers.providers.Web3Provider(provider);
-      const signer = web3Provider.getSigner();
+      const provider = new ethers.providers.Web3Provider(await web3Modal.connect());
+      const signer = provider.getSigner();
       return fetchContract(signer);
     } catch (error) {
-      console.error(" Error connecting to smart contract:", error);
+      console.error("Error connecting to smart contract:", error);
     }
   };
 
@@ -87,7 +90,7 @@ export const VotingProvider = ({ children }) => {
   };
   
 
-
+//Get ALL Candidates
   const getAllCandidates = async () => {
     try {
       const contract = await connectSmartContract();
@@ -124,7 +127,7 @@ export const VotingProvider = ({ children }) => {
     }
   };
   
-
+//Create candidate
 
 
   const createCandidate = async (age, name, imageUrl, party, ipfsHash) => {
@@ -157,7 +160,27 @@ export const VotingProvider = ({ children }) => {
     }
   };
   
+  //Submit vote
+  const vote = async (candidateAddress) => {
+    try {
+      const contract = await connectSmartContract();
+      if (!contract) throw new Error("Smart contract connection failed!");
   
+      const tx = await contract.vote(candidateAddress, { from: currentAccount });
+      await tx.wait();
+  
+      alert("Vote cast successfully!");
+      console.log(`Voted for candidate: ${candidateAddress}`);
+  
+      return true;
+    } catch (error) {
+      console.error("Error while voting:", error.message || error);
+      alert("Failed to cast vote. See console for details.");
+      return false;
+    }
+  };
+  
+
 
   useEffect(() => {
     connectWallet();
@@ -173,7 +196,9 @@ export const VotingProvider = ({ children }) => {
         getAllCandidates,
         createCandidate,
         getCandidateDetails,
+        vote,
         candidates,
+
       }}
     >
       {children}
