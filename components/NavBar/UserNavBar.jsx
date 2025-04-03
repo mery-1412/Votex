@@ -61,8 +61,8 @@ function NavBar() {
         </button>
         <Link href="#home" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Home</Link>
         <Link href="#about" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">About</Link>
-        <Link href="#about" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Vote</Link>
-        <Link href="#about" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Results</Link>
+        <Link href="#Candidates" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Candidates</Link>
+        <Link href="#results" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Results</Link>
         <Link href="#contact" onClick={() => setNavbar(false)} className="hover:text-purple-400 text-xl">Contact</Link>
        
 
