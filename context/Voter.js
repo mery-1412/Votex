@@ -19,10 +19,11 @@ export const VotingProvider = ({ children }) => {
   const [currentAccount, setCurrentAccount] = useState("");
   const [candidates, setCandidates] = useState([]);
   const [error, setError] = useState("");
+  const [hasVoted, setHasVoted] = useState(false);
   const randomWallet = ethers.Wallet.createRandom();const newCandidateAddress = randomWallet.address;
 
   // Connect Wallet
-  // Connect Wallet
+ 
   const connectWallet = async () => {
     if (!window.ethereum) return setError("Install MetaMask first!");
     try {
@@ -159,6 +160,14 @@ export const VotingProvider = ({ children }) => {
       return false;
     }
   };
+
+
+  useEffect(() => {
+    const voted = localStorage.getItem("hasVoted");
+    if (voted === "true") {
+      setHasVoted(true);
+    }
+  }, []);
   
   //Submit vote
   const vote = async (candidateAddress) => {
@@ -171,7 +180,8 @@ export const VotingProvider = ({ children }) => {
   
       alert("Vote cast successfully!");
       console.log(`Voted for candidate: ${candidateAddress}`);
-  
+      setHasVoted(true);
+      localStorage.setItem("hasVoted", "true");
       return true;
     } catch (error) {
       console.error("Error while voting:", error.message || error);

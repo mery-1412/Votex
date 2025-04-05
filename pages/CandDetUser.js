@@ -6,10 +6,9 @@ import { useRouter } from "next/router";
 import RequireAuth from "./protectingRoutes/RequireAuth";
 
 const CandDetUser = () => { 
-  const { getCandidateDetails, vote } = useContext(VotingContext);
+  const { getCandidateDetails, vote,hasVoted } = useContext(VotingContext);
   const [candidate, setCandidate] = useState(null);
-  const [hasVoted, setHasVoted] = useState(false); // Track if user has voted
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false); // Show success popup
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false); 
   const router = useRouter();
   const { address } = router.query;
 
@@ -40,13 +39,15 @@ const CandDetUser = () => {
 
   const handleVote = async () => {
     try {
-      await vote(candidate.address);
-      setHasVoted(true); // Disable the button after voting
-      setShowSuccessPopup(true); // Show success message
+      const result = await vote(candidate.address);
+      if (result !== false) {
+        setShowSuccessPopup(true); 
+      }
     } catch (error) {
       console.error("Voting failed", error);
     }
   };
+  
 
   if (!candidate) {
     return <div className="text-white text-center">Loading candidate details...</div>;
@@ -78,13 +79,13 @@ const CandDetUser = () => {
               <p className="text-gray-200 text-lg text-center lg:text-left">{candidate.party}</p>
 
               <div className="mt-8 flex justify-center lg:justify-end">
-                <button 
-                  className={`gradient-border-button ${hasVoted ? "opacity-50 cursor-not-allowed" : ""}`} 
-                  onClick={handleVote}
-                  disabled={hasVoted}
-                >
-                  {hasVoted ? "VOTED" : "VOTE"}
-                </button>
+              <button 
+                    className={`gradient-border-button ${hasVoted ? "opacity-50 cursor-not-allowed" : ""}`} 
+                    onClick={handleVote}
+                    disabled={hasVoted}
+                                            >
+                           {hasVoted ? "VOTED" : "VOTE"}
+              </button>
               </div>
             </div>
           </div>
