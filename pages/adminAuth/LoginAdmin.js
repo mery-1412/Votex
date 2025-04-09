@@ -34,7 +34,6 @@ const LoginAdmin = () => {
     setError(json.error)
   } else {
     await checkAuth();
-    alert("YAW LOGIIIIIIIIIIIIIIIIT")
     router.push('/admin/Dashboard')
 
    

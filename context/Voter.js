@@ -20,6 +20,9 @@ export const VotingProvider = ({ children }) => {
   const [candidates, setCandidates] = useState([]);
   const [error, setError] = useState("");
   const [hasVoted, setHasVoted] = useState(false);
+  const [errMessage, setErrMessage] = useState("");
+  const [message, setMessage] = useState("");
+
   const randomWallet = ethers.Wallet.createRandom();const newCandidateAddress = randomWallet.address;
 
   // Connect Wallet
@@ -130,34 +133,68 @@ export const VotingProvider = ({ children }) => {
   
 //Create candidate
 
+const parseErrorMessage = (error) => {
+  console.error("FULL ERROR:", error);
+
+  if (error?.data?.message) return `${error.data.message}`;
+  if (error?.data?.originalError?.message) return ` ${error.data.originalError.message}`;
+  if (error?.reason) return ` ${error.reason}`;
+  if (error?.message?.includes("revert")) return ` ${error.message}`;
+
+  // Decode potential hex-encoded error message
+  try {
+    if (error?.data?.data) {
+      const decoded = ethers.utils.toUtf8String("0x" + error.data.data.slice(138));
+      return ` ${decoded}`;
+    }
+  } catch (err) {
+    console.warn("Could not decode revert message", err);
+  }
+
+  // Fallback
+  if (error?.message) return ` ${error.message}`;
+  return " An unknown error occurred.";
+};
+
+
 
   const createCandidate = async (age, name, imageUrl, party, ipfsHash) => {
     try {
+      
       console.log("Creating candidate...");
   
       const contract = await connectSmartContract();
       if (!contract) throw new Error("Smart contract connection failed!");
       const existingCandidate = await contract.getCandidateData(currentAccount);
       console.log("Existing candidate:", existingCandidate);
+      
+      const organizer = await contract.votingOrganizer();
+      console.log("Organizer Address in Contract:", organizer);
+      console.log("Your Wallet Address:", currentAccount);
+      
       const tx = await contract.setCandidate(
         newCandidateAddress, 
         age,
         name,
-        imageUrl,
+        imageUrl, 
         party,
         ipfsHash
       );
-  
+      
+      console.log("Transaction sent:", tx.hash);
+
       await tx.wait(); 
   
-      alert(" Candidate created successfully!");
+      setMessage("Candidate created successfully!");
       console.log(" Candidate created:", { age, name, imageUrl, party });
   
       return true;
     } catch (error) {
-      console.error(" Error creating candidate:", error.message || error);
-      alert(" Failed to create candidate. See console for details.");
-      return false;
+      const errorMessage = parseErrorMessage(error);
+      console.log(errorMessage);
+      setErrMessage(errorMessage);
+
+  
     }
   };
 
@@ -178,14 +215,15 @@ export const VotingProvider = ({ children }) => {
       const tx = await contract.vote(candidateAddress, { from: currentAccount });
       await tx.wait();
   
-      alert("Vote cast successfully!");
+      setMessage("Vote cast successfully!");
       console.log(`Voted for candidate: ${candidateAddress}`);
       setHasVoted(true);
       localStorage.setItem("hasVoted", "true");
       return true;
     } catch (error) {
-      console.error("Error while voting:", error.message || error);
-      alert("Failed to cast vote. See console for details.");
+      const errorMessage = parseErrorMessage(error);
+      console.log(errorMessage);
+      setErrMessage(errorMessage);
       return false;
     }
   };
@@ -208,6 +246,10 @@ export const VotingProvider = ({ children }) => {
         getCandidateDetails,
         vote,
         candidates,
+        message, 
+        errMessage,
+        setMessage,
+        setErrMessage
 
       }}
     >
