@@ -18,7 +18,7 @@ module.exports = {
   networks: {
     volta: {
       url: process.env.API_URL,
-      accounts: [process.env.PRIVATE_KEY],
+      accounts: [process.env.PRIVATE_KEY, process.env.ADMIN_PRIVATE_KEY],
       chainId: 73799, // Volta Testnet Chain ID
     },
   },

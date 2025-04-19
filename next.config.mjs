@@ -18,10 +18,10 @@ const nextConfig = {
       { source: "/upload", destination: "/UploadFile" },
       { source: "/CandDet/:id", destination: "/CandDetUser" },
       { source: "/Candidates", destination: "/CandidatesUser" },
+      { source: "/sessions", destination: "/admin/Sessions" },  
+      { source: "/results", destination: "/admin/Results" },    
+      { source: "/archives", destination: "/admin/Archives" },  
 
-
-      
-      
     ];
   },
 };
