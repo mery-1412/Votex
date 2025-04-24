@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { AuthContext } from "@/pages/context/AuthContext";
 import {
@@ -7,43 +7,62 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Menu,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 
 const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
   const { logout } = useContext(AuthContext);
   const router = useRouter();
+  const [screenWidth, setScreenWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1024
+  );
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setScreenWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (screenWidth < 768) {
+      setIsCollapsed(true);
+      setIsMobileOpen(false);
+    }
+  }, [screenWidth, setIsCollapsed]);
 
   const menuItems = [
-    { label: "Dashboard", icon: <LayoutDashboard size={20} />, href: "/dashboard" },
     { label: "Candidates", icon: <Users size={20} />, href: "/admin/Candidates" },
-    { label: "Sessions", icon: <Settings size={20} />, href: "/dashboard/settings" },
+    { label: "Dashboard", icon: <LayoutDashboard size={28} />, href: "/dashboard" },
+    { label: "Sessions", icon: <Settings size={28} />, href: "/sessions" },
+    { label: "Archives", icon: <Settings size={28} />, href: "/archives" },
   ];
 
   const handleLogout = async () => {
     await logout();
   };
 
-  return (
+  const SidebarContent = () => (
     <div
-      className={`h-screen flex flex-col transition-all duration-300 ${isCollapsed ? "w-16" : "w-64"}`}
-      style={{
-        background: "linear-gradient(to bottom, #3A2663, #4C1D95)", // Gradient purple-blue background
-      }}
+      className={`h-full flex flex-col bg-gradient-to-b from-[#3A2663] to-[#4C1D95] shadow-lg transition-all duration-300 ${
+        isCollapsed ? "w-16 items-center justify-center" : "w-72"
+      }`}
     >
-      {/* Top Section: Logo */}
-      <div className="flex items-center justify-center p-4">
-        <Link href="/">
-          <img
-            src="/assets/logo.png" // Update the path to your logo
-            alt="Logo"
-            className={`${isCollapsed ? "w-10 h-10" : "w-16 h-16"} transition-all duration-300`}
-          />
-        </Link>
-      </div>
+      {!isCollapsed && (
+        <div className="flex items-center justify-center p-6">
+          <Link href="/">
+            <img
+              src="/assets/logo.png"
+              alt="Logo"
+              className="transition-all duration-300 w-20 h-20"
+            />
+          </Link>
+        </div>
+      )}
 
-      {/* Middle Section: Navigation Links */}
-      <div className="flex-1 flex flex-col justify-center"> {/* Center the navigation links vertically */}
+      <div className="flex-1 flex flex-col justify-center">
         <nav>
           {menuItems.map((item) => (
             <div
@@ -53,7 +72,6 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
               }`}
               onClick={() => router.push(item.href)}
             >
-              {/* Gradient Icon and Text on Hover */}
               <div className="text-white hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-200">
                 {item.icon}
               </div>
@@ -67,29 +85,53 @@ const AdminSidebar = ({ isCollapsed, setIsCollapsed }) => {
         </nav>
       </div>
 
-      {/* Bottom Section: Logout Button */}
       <div
         onClick={handleLogout}
-        className="flex items-center justify-center gap-4 p-4 cursor-pointer transition-colors duration-200"
+        className={`p-6 cursor-pointer ${
+          isCollapsed ? "flex justify-center" : "flex items-center justify-center gap-4"
+        }`}
       >
         {!isCollapsed && (
-          <button className="gradient-border-button">
-            LOG OUT
-          </button>
+          <button className="gradient-border-button">LOG OUT</button>
         )}
       </div>
 
-      {/* Toggle Button */}
-      <div className="flex justify-end p-4">
-      <button
+      <div className={`p-6 ${isCollapsed ? "flex justify-center" : "flex justify-end"}`}>
+        <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="text-white hover:text-gray-200 transition-colors duration-200"
+          className="text-white hover:text-gray-200"
         >
-          {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+          {isCollapsed ? <ChevronRight size={28} /> : <ChevronLeft size={28} />}
         </button>
-
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {screenWidth < 768 && (
+        <div className="absolute top-4 left-4 z-50">
+          <button
+            onClick={() => setIsMobileOpen(!isMobileOpen)}
+            className="text-white bg-purple-800 p-2 rounded-md"
+          >
+            {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
+      )}
+
+      {screenWidth >= 768 ? (
+        <SidebarContent />
+      ) : (
+        <div
+          className={`fixed top-0 left-0 h-full z-40 transition-transform duration-300 ${
+            isMobileOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <SidebarContent />
+        </div>
+      )}
+    </>
   );
 };
 

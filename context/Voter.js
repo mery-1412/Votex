@@ -22,7 +22,11 @@ export const VotingProvider = ({ children }) => {
   const [hasVoted, setHasVoted] = useState(false);
   const [errMessage, setErrMessage] = useState("");
   const [message, setMessage] = useState("");
-
+  const [votingPeriod, setVotingPeriodState] = useState({
+    start: null,
+    end: null
+  });
+  const [isLoading, setIsLoading] = useState(false);
   const randomWallet = ethers.Wallet.createRandom();const newCandidateAddress = randomWallet.address;
 
   // Connect Wallet
@@ -131,31 +135,66 @@ export const VotingProvider = ({ children }) => {
     }
   };
   
-//Create candidate
 
+//session swala7
 const parseErrorMessage = (error) => {
-  console.error("FULL ERROR:", error);
-
-  if (error?.data?.message) return `${error.data.message}`;
-  if (error?.data?.originalError?.message) return ` ${error.data.originalError.message}`;
-  if (error?.reason) return ` ${error.reason}`;
-  if (error?.message?.includes("revert")) return ` ${error.message}`;
-
-  // Decode potential hex-encoded error message
-  try {
-    if (error?.data?.data) {
-      const decoded = ethers.utils.toUtf8String("0x" + error.data.data.slice(138));
-      return ` ${decoded}`;
-    }
-  } catch (err) {
-    console.warn("Could not decode revert message", err);
-  }
-
-  // Fallback
-  if (error?.message) return ` ${error.message}`;
-  return " An unknown error occurred.";
+  if (error?.data?.message) return error.data.message;
+  if (error?.message) return error.message;
+  return "An unknown error occurred.";
 };
 
+  const setVotingPeriod = async (startTime, endTime) => {
+    try {
+
+      const contract = await connectSmartContract();
+
+      if (!contract) throw new Error("Smart contract connection failed!");
+      
+      const tx = await contract.setVotingPeriod(startTime, endTime);
+      await tx.wait();
+
+      
+      setMessage("Voting period set successfully!");
+      console.log(`Voting period set from ${startTime} to ${endTime}`);
+      
+      return true;
+    } catch (error) {
+      const errorMessage = parseErrorMessage(error);
+      console.log(errorMessage);
+      setErrMessage(errorMessage);
+      return false;
+    }
+  };
+
+// Get voting period from contract
+const getVotingPeriod = async () => {
+  try {
+    setIsLoading(true);
+    const contract = await connectSmartContract();
+    if (!contract) throw new Error("Smart contract connection failed!");
+    
+    const start = await contract.start_period();
+    const end = await contract.end_period();
+    
+    setVotingPeriodState({
+      start: start.toNumber(),
+      end: end.toNumber()
+    });
+    
+    // Optionally save to localStorage
+    localStorage.setItem('votingPeriod', JSON.stringify({
+      start: start.toNumber(),
+      end: end.toNumber()
+    }));
+    
+    return { start: start.toNumber(), end: end.toNumber() };
+  } catch (error) {
+    console.error("Error getting voting period:", error);
+    return null;
+  } finally {
+    setIsLoading(false);
+  }
+};
 
 
   const createCandidate = async (age, name, imageUrl, party, ipfsHash) => {
@@ -230,8 +269,25 @@ const parseErrorMessage = (error) => {
   
 
 
+  // useEffect(() => {
+  //   connectWallet();
+  // }, []);
+
   useEffect(() => {
-    connectWallet();
+    const loadInitialData = async () => {
+      await connectWallet();
+      
+      // Try to load from localStorage first for faster display
+      const cachedPeriod = localStorage.getItem('votingPeriod');
+      if (cachedPeriod) {
+        setVotingPeriodState(JSON.parse(cachedPeriod));
+      }
+      
+      // Then fetch from blockchain to ensure it's up-to-date
+      await getVotingPeriod();
+    };
+    
+    loadInitialData();
   }, []);
 
   return (
@@ -249,7 +305,11 @@ const parseErrorMessage = (error) => {
         message, 
         errMessage,
         setMessage,
-        setErrMessage
+        setErrMessage,
+        setVotingPeriod,
+        getVotingPeriod, 
+        votingPeriod,  
+        isLoading,       
 
       }}
     >

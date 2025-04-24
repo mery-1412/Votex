@@ -22,7 +22,7 @@ html, body {
   .gradient-border-button {
     background: transparent; /* Transparent background */
     border: 1px solid transparent; /* Transparent border initially */
-    border-image: linear-gradient(to right, rgb(192,59,250), rgb(66,147,234)) 1; /* Gradient border */
+    border-image: linear-gradient(to right, rgb(192,59,250), rgb(223, 89, 250)) 1; /* Gradient border */
     color: white; 
     padding: 0.5rem 1.5rem; 
     font-weight: 600; 
@@ -87,4 +87,197 @@ html, body {
   .dashboard-page {
     background: white !important; 
   }
+
+.sessions-page {
+  background: white !important; 
+
+}
+.archives-page {
+  background: white !important; 
+
+}
+
+
+
+
+
+.countdown-form {
+  background-color: #f6f6f6;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.countdown-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: clamp(1.25rem, 4vw, 1.5rem);
+  margin: 1rem 0;
+}
+
+.countdown-name {
+  color: #fff;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  margin-bottom: 1rem;
+  text-align: center;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.countdown-date {
+  color: #eafbfa;
+  margin: 0 0 1.5rem;
+  text-align: center;
+  font-size: clamp(1rem, 3vw, 1.25rem);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.countdown-display {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 1rem;
+  justify-content: center;
+  padding: 0.5rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.countdown-value {
+  background-color: #8b32c7;
+  border-radius: 50%;
+  color: #ffffff;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
+  font-weight: 700;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.countdown-value:hover {
+  transform: scale(1.05);
+}
+
+.countdown-value > span {
+  color: #fff;
+  font-size: clamp(0.75rem, 2vw, 0.875rem);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 0.2rem;
+  font-weight: 500;
+}
+
+.control-buttons {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.control-buttons > button {
+  background-color: #B342FF;
+  border-radius: 50%;
+  width: clamp(45px, 8vw, 50px);
+  height: clamp(45px, 8vw, 50px);
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(0.65rem, 2vw, 0.775rem);
+}
+
+.control-buttons button:hover {
+  background-color: #B342FF;
+  transform: scale(1.1);
+}
+
+@media (max-width: 480px) {
+  .countdown-display {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .countdown-value {
+    font-size: clamp(1.25rem, 4vw, 1.75rem);
+  }
+
+  .countdown-value > span {
+    font-size: 0.75rem;
+  }
+
+  .control-buttons {
+    margin-top: 1.5rem;
+  }}
+
+
+  @media (max-width: 360px) {
+    body {
+      padding: 0.75rem;
+    }
+  
+    .countdown-form {
+      padding: 1rem;
+    }
+  
+    .countdown-name {
+      font-size: 1.25rem;
+    }
+  
+    .countdown-date {
+      font-size: 1rem;
+    }
+  
+    .control-buttons > button {
+      width: 40px;
+      height: 40px;
+    }
+  }
+
+
+
+
+
+
+
+
+  /* From Uiverse.io by btongheng */ 
+.cool-button {
+  --😀: #8130b8;
+  --😀😀: #62248b;
+  --😀😀😀: #4b1b6b;
+  cursor: pointer;
+  width: 184px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  font-size: 1.125em;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #fff;
+  background: var(--😀);
+  border: 2px solid var(--😀😀);
+  border-radius: .75rem;
+  box-shadow: 0 8px 0 var(--😀😀);
+  transform: skew(-10deg);
+  transition: all .1s ease;
+  filter: drop-shadow(0 15px 20px var(--😀😀😀));
+}
+
+.cool-button:active {
+  letter-spacing: 0px;
+  transform: skew(-10deg) translateY(8px);
+  box-shadow: 0 0 0 var(--😀😀😀);
+}
 
