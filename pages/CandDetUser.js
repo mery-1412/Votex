@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 import RequireAuth from "./protectingRoutes/RequireAuth";
 
 const CandDetUser = () => { 
-  const { getCandidateDetails, vote,hasVoted } = useContext(VotingContext);
+  const { getCandidateDetails, vote,hasVoted,setHasVoted } = useContext(VotingContext);
   const [candidate, setCandidate] = useState(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false); 
   const [loading, setLoading] = useState(true);
@@ -45,16 +45,23 @@ const CandDetUser = () => {
     }
   };
 
+  ///use effect to heck the globel state of hasvoted and render each time the state changes
+
+  useEffect(() => {
+    const voted = localStorage.getItem("hasVoted");
+    if (voted === "true") {
+      setHasVoted(true);
+    }
+  }, [showSuccessPopup]); 
+
   const handleVote = async () => {
     try {
       const result = await vote(candidate.address);
       setLoading(true);
       if (result !== false) {
         setShowSuccessPopup(true); 
+        setHasVoted(true); // ✅ manually update it here
       }
-
-    
-
     } catch (error) {
       console.error("Voting failed", error);
       setError("Failed to submit vote. Please try again.");
@@ -63,6 +70,7 @@ const CandDetUser = () => {
     }
   };
   
+ 
 
   const handleRetry = () => {
     fetchCandidateData();

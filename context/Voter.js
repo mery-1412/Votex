@@ -269,9 +269,6 @@ const getVotingPeriod = async () => {
   
 
 
-  // useEffect(() => {
-  //   connectWallet();
-  // }, []);
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -309,7 +306,9 @@ const getVotingPeriod = async () => {
         setVotingPeriod,
         getVotingPeriod, 
         votingPeriod,  
-        isLoading,       
+        isLoading,    
+        hasVoted, 
+        setHasVoted 
 
       }}
     >
