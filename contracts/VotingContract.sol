@@ -12,7 +12,7 @@ contract Create {
     uint256 public end_period;
     address public deployer;
     address public organizer;
-    address public votingOrganizer; // Now it will be properly set
+    address public votingOrganizer;
 
     struct Candidate {
         uint256 candidateId;
@@ -36,11 +36,22 @@ contract Create {
         string ipfs
     );
     
+    // Event for vote tracking
+    event VoteCast(
+        address indexed voter,
+        address indexed candidate,
+        bytes32 indexed userIdHash
+    );
+    
     address[] public candidateAddress;
     mapping(address => Candidate) public candidates;
     
     address[] public votedVoters;
     mapping(address => bool) public hasVoted;
+    
+    // Track voting by user ID (hashed)
+    mapping(bytes32 => bool) public idHasVoted;
+    bytes32[] public votedIdHashes;
 
     constructor() {
         deployer = msg.sender; // Store the deployer's address
@@ -51,10 +62,15 @@ contract Create {
         _;
     }
 
+    modifier onlyOrganizer() {
+        require(msg.sender == votingOrganizer, "Only organizer can perform this action");
+        _;
+    }
+
     function setOrganizer(address _organizer) external onlyDeployer {
         require(_organizer != address(0), "Invalid organizer address");
         organizer = _organizer;
-        votingOrganizer = _organizer; // FIX: Set votingOrganizer properly
+        votingOrganizer = _organizer;
     }
 
     function setCandidate(
@@ -64,8 +80,7 @@ contract Create {
         string memory _image,
         string memory _party,
         string memory _ipfs
-    ) public {
-        require(votingOrganizer == msg.sender, "Only Organiser can add Candidates!");
+    ) public onlyOrganizer {
         require(candidates[_address].candidateId == 0, "Candidate already exists!");
 
         _candidateId.increment();
@@ -82,18 +97,18 @@ contract Create {
             ipfs: _ipfs
         });
 
-        candidateAddress.push(_address); // Store unique address
+        candidateAddress.push(_address);
 
         emit CandidateCreate(idNumber, _age, _name, _image, _party, 0, _address, _ipfs);
     }
 
-    function setVotingPeriod(uint256 _start, uint256 _end) public {
-        require(votingOrganizer == msg.sender, "Only the organizer can set the voting period!");
+    function setVotingPeriod(uint256 _start, uint256 _end) public onlyOrganizer {
         require(_start < _end, "Start time must be before end time!");
         start_period = _start;
         end_period = _end;
     }
 
+    // Standard vote function (kept for compatibility)
     function vote(address _candidateIdAddress) external {
         require(block.timestamp >= start_period, "Voting has not started yet!");
         require(block.timestamp <= end_period, "Voting period has ended!");
@@ -103,6 +118,36 @@ contract Create {
         votedVoters.push(msg.sender);
 
         candidates[_candidateIdAddress].voteCount += 1;
+    }
+
+    // Enhanced vote function with ID verification
+    function voteWithId(address _candidateIdAddress, bytes32 _userIdHash) external {
+        require(block.timestamp >= start_period, "Voting has not started yet!");
+        require(block.timestamp <= end_period, "Voting period has ended!");
+        require(!hasVoted[msg.sender], "This wallet has already voted!");
+        require(!idHasVoted[_userIdHash], "This ID has already been used to vote!");
+        
+        // Mark both wallet and ID as having voted
+        hasVoted[msg.sender] = true;
+        idHasVoted[_userIdHash] = true;
+        
+        // Record the vote
+        votedVoters.push(msg.sender);
+        votedIdHashes.push(_userIdHash);
+        candidates[_candidateIdAddress].voteCount += 1;
+        
+        // Emit event for tracking
+        emit VoteCast(msg.sender, _candidateIdAddress, _userIdHash);
+    }
+
+    // Check if an ID has already voted
+    function hasIdVoted(bytes32 _userIdHash) external view returns (bool) {
+        return idHasVoted[_userIdHash];
+    }
+    
+    // Get list of all ID hashes that have voted
+    function getVotedIdList() public view returns (bytes32[] memory) {
+        return votedIdHashes;
     }
 
     function getVotedVoterList() public view returns (address[] memory) {

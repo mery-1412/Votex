@@ -1,17 +1,40 @@
 import React, { useState, useEffect, useContext } from "react";
 import UserNavBar from "../components/NavBar/UserNavBar";
 import { VotingContext } from "../context/Voter"; 
+import { AuthContext } from "./context/AuthContext";
 import { useRouter } from "next/router";
 import RequireAuth from "./protectingRoutes/RequireAuth";
 
 const CandDetUser = () => { 
-  const { getCandidateDetails, vote,hasVoted,setHasVoted } = useContext(VotingContext);
+  const { 
+    getCandidateDetails, 
+    vote, 
+    hasVoted, 
+    setHasVoted,
+    checkIfUserVoted, 
+    currentAccount,
+    checkVotingPeriod
+  } = useContext(VotingContext);
+  const { user  } = useContext(AuthContext);
+  
   const [candidate, setCandidate] = useState(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
   const { address } = router.query;
+
+  // Check voting status whenever component mounts or account/user changes
+  useEffect(() => {
+    const checkVotingStatus = async () => {
+      if (currentAccount && user?.id) {
+        const hasAlreadyVoted = await checkIfUserVoted();
+        setHasVoted(hasAlreadyVoted);
+      }
+    };
+
+    checkVotingStatus();
+  }, [currentAccount, user, checkIfUserVoted]);
 
   useEffect(() => {
     if (address) {
@@ -45,32 +68,47 @@ const CandDetUser = () => {
     }
   };
 
-  ///use effect to heck the globel state of hasvoted and render each time the state changes
-
-  useEffect(() => {
-    const voted = localStorage.getItem("hasVoted");
-    if (voted === "true") {
-      setHasVoted(true);
-    }
-  }, [showSuccessPopup]); 
-
   const handleVote = async () => {
     try {
-      const result = await vote(candidate.address);
       setLoading(true);
-      if (result !== false) {
-        setShowSuccessPopup(true); 
-        setHasVoted(true); // ✅ manually update it here
+      setError(null);
+      
+      // Check if user is logged in
+      if (!user || !user.id) {
+        throw new Error("You must be logged in to vote");
+      }
+
+      // Check if wallet is connected
+      if (!currentAccount) {
+        throw new Error("Please connect your wallet");
+      }
+
+      // Let the vote function handle all checks
+      const transaction = await vote(candidate.address);
+      
+      if (!transaction) {
+        throw new Error("Vote transaction failed to start");
+      }
+      
+      try {
+        // Wait for transaction confirmation
+        const receipt = await transaction.wait();
+        console.log("Vote confirmed:", receipt);
+        
+        // Update UI status
+        setHasVoted(true);
+        setShowSuccessPopup(true);
+      } catch (waitError) {
+        console.error("Transaction wait failed:", waitError);
+        throw new Error("Vote transaction failed. The transaction was sent but not confirmed.");
       }
     } catch (error) {
-      console.error("Voting failed", error);
-      setError("Failed to submit vote. Please try again.");
+      console.error("Voting failed:", error);
+      setError(error.message || "Failed to submit vote");
     } finally {
       setLoading(false);
     }
   };
-  
- 
 
   const handleRetry = () => {
     fetchCandidateData();
@@ -140,14 +178,13 @@ const CandDetUser = () => {
               <p className="text-gray-200 text-lg text-center lg:text-left">{candidate.party}</p>
 
               <div className="mt-8 flex justify-center lg:justify-end">
-              <button 
-                    className={`gradient-border-button ${hasVoted ? "opacity-50 cursor-not-allowed" : ""}`} 
-                    onClick={handleVote}
-                    disabled={hasVoted}
-                                            >
-                           {hasVoted ? "VOTED" : "VOTE"}
-              </button>
-
+                <button 
+                  className={`gradient-border-button ${hasVoted ? "opacity-50 cursor-not-allowed" : ""}`} 
+                  onClick={handleVote}
+                  disabled={hasVoted || loading}
+                >
+                  {loading ? "Processing..." : hasVoted ? "VOTED" : "VOTE"}
+                </button>
               </div>
             </div>
           </div>
@@ -159,12 +196,14 @@ const CandDetUser = () => {
           <div className="relative w-96 p-8 bg-white bg-opacity-10 backdrop-blur-md rounded-lg border border-white border-opacity-30 text-white text-center">
             <h1 className="text-2xl mb-8">Vote Submitted Successfully!</h1>
             <img src='/assets/check.png' alt="Success" className="w-48 h-36 mx-auto mb-4 object-contain" />
-
             <button
-              onClick={() => setShowSuccessPopup(false)}
+              onClick={() => {
+                setShowSuccessPopup(false);
+                router.push('/dashboard'); // Redirect after successful vote
+              }}
               className="gradient-border-button"
             >
-              Close
+              Return to Dashboard
             </button>
           </div>
         </div>

@@ -43,7 +43,7 @@ exports.getUser = async (req, res) => {
     }
     console.log("user role",user.role);
     
-    return res.json({ idNumber: user.idNumber, email: user.email, role: user.role });
+    return res.json({ id: user._id, idNumber: user.idNumber, email: user.email, role: user.role });
   } catch (err) {
     res.status(500).json({ error: "Internal Server Error" });
   }

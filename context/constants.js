@@ -3,12 +3,12 @@
 
 import voting from './Create.json';
 //hiba:
-export const VotingAddress = '0x72C9c07bb1Ee02a789B190B2E20234C6F7A541AC';
+// export const VotingAddress = '0x72C9c07bb1Ee02a789B190B2E20234C6F7A541AC';
 
 
 
 // //mery
-// export const VotingAddress = '0x9226a825aE865E7a00143359591DF5397c0e7f2a';
+export const VotingAddress = '0x3E3906CaDcbb21B824BecAdE92ec2aCAD7212a89';
 
 
 //nariiiiiiiii
