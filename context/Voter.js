@@ -32,16 +32,22 @@ export const VotingProvider = ({ children }) => {
   // Connect Wallet
  
   const connectWallet = async () => {
-    if (!window.ethereum) return setError("Install MetaMask first!");
-    try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const accounts = await provider.send("eth_requestAccounts", []);
-      setCurrentAccount(accounts[0]);
-      console.log("Wallet connected:", accounts[0]);
-    } catch (err) {
-      console.error("Error connecting wallet:", err);
-    }
-  };
+  console.log("Trying to connect to MetaMask...");
+  if (!window.ethereum) {
+    setError("Install MetaMask first!");
+    return false; // Return false if MetaMask is not installed
+  }
+  try {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const accounts = await provider.send("eth_requestAccounts", []);
+    setCurrentAccount(accounts[0]);
+    console.log("Wallet connected:", accounts[0]);
+    return true; // Return true if connection is successful
+  } catch (err) {
+    console.error("Error connecting wallet:", err);
+    return false; // Return false if an error occurs
+  }
+};
 
   // Fetch Smart Contract
   const fetchContract = (signerOrProvider) =>
@@ -272,7 +278,7 @@ const getVotingPeriod = async () => {
 
   useEffect(() => {
     const loadInitialData = async () => {
-      await connectWallet();
+     
       
       // Try to load from localStorage first for faster display
       const cachedPeriod = localStorage.getItem('votingPeriod');

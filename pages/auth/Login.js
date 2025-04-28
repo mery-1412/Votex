@@ -2,6 +2,7 @@ import { useState, useContext} from "react";
 import { useRouter } from "next/router";
 import OnlyPublic from "../protectingRoutes/OnlyPublic";
 import { AuthContext } from "../context/AuthContext"; // Import AuthContext
+import { VotingContext } from "@/context/Voter"; 
 
 
 const Login = () => {
@@ -10,6 +11,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("")
+  const {connectWallet } = useContext(VotingContext);
 
 
   const router = useRouter();
@@ -23,31 +25,33 @@ const Login = () => {
     router.push("/forgot-password")
   }
 
-  const handleSubmit = async (e) =>{
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true)
+    setIsLoading(true);
     const response = await fetch('http://localhost:5000/api/auth/login', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ email, password }),
-    credentials: "include",
-  })
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+      credentials: "include",
+    });
   
-  const json = await response.json()
-  console.log(json);
+    const json = await response.json();
+    console.log(json);
   
-  if(!response.ok){
-    setError(json.error)
-
-  } else {
-    await checkAuth();
-    router.push('/home-user')
-
-  }
-  setIsLoading(false)
-
-
-}
+    if (!response.ok) {
+      setError(json.error);
+    } else {
+      await checkAuth();
+      const connected = await connectWallet(); // This is where the issue lies
+      if (!connected) {
+        setError("Failed to connect to MetaMask. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+      router.push('/home-user');
+    }
+    setIsLoading(false);
+  };
 
   return (
     <OnlyPublic>
