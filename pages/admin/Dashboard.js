@@ -159,7 +159,7 @@ const Dashboard = () => {
   const handleLinkWallet = async () => {
     try {
       if (!user || !user._id) {
-        setWalletError("Please log in first");
+        setWalletError("Please log in as an admin");
         return;
       }
 

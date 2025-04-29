@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { AuthContext } from "../context/AuthContext";
+import { Loading } from "@/components/Loading";
 
 const OnlyPublic = ({ children }) => {
   const { user, isAuthLoading } = useContext(AuthContext);
@@ -14,7 +15,6 @@ const OnlyPublic = ({ children }) => {
       } else {
         setIsChecking(false);
 
-        // ✅ Fix: Ensure user exists before checking role
         if (user) {
           if (user.role === "voter") {
             await router.replace("/home-user");
@@ -29,7 +29,7 @@ const OnlyPublic = ({ children }) => {
   }, [user, isAuthLoading, router]);
 
   if (isChecking) {
-    return <p>Loading...</p>;
+    return <Loading />;
   }
 
   return user ? null : children;

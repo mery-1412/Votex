@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { AuthContext } from "../context/AuthContext";
+import { Loading } from "@/components/Loading";
 
 const RequireAdmin = ({ children }) => {
   const { user, isAuthLoading } = useContext(AuthContext);
@@ -14,7 +15,6 @@ const RequireAdmin = ({ children }) => {
       } else {
         setIsChecking(false);
 
-        // ✅ Fix: Ensure user is not null before checking role
         if (!user) {
           router.replace("/admin-login");
           return;
@@ -34,7 +34,7 @@ const RequireAdmin = ({ children }) => {
   }, [user, isAuthLoading, router]);
 
   if (isChecking) {
-    return <p>Loading...</p>;
+    return <Loading />;
   }
 
   return user && user.role === "admin" ? children : null;

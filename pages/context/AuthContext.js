@@ -129,7 +129,6 @@ export const AuthContextProvider = ({ children }) => {
         {}, 
         { 
           withCredentials: true,
-          // Set a short timeout to prevent hanging
           timeout: 3000
         }
       );
@@ -152,8 +151,8 @@ export const AuthContextProvider = ({ children }) => {
       console.log("Clearing local session");
       setUser(null);
       
-      // Clear any local storage items if you're using them
-      // localStorage.removeItem('someItem');
+  
+      
       
       // Redirect to login page
       router.push("/login");

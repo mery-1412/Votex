@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { AuthContext } from "../context/AuthContext";
+import { Loading } from "@/components/Loading";
 
 const RequireAuth = ({ children }) => {
   const { user, isAuthLoading } = useContext(AuthContext);
@@ -14,7 +15,6 @@ const RequireAuth = ({ children }) => {
       } else {
         setIsChecking(false);
 
-        // ✅ Fix: Ensure user exists before checking role
         if (!user) {
           router.replace("/login");
           return;
@@ -34,7 +34,7 @@ const RequireAuth = ({ children }) => {
   }, [user, isAuthLoading, router]);
 
   if (isChecking) {
-    return <p>Loading...</p>;
+    return <Loading />; 
   }
 
   return user && user.role === "voter" ? children : null;
