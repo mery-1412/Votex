@@ -46,7 +46,7 @@ const Dashboard = () => {
   };
   
   const sampleData_pie = {
-    labels: ["Option 1", "Option 2", "Option 3"],
+    labels: ["cand 1", "cand 2", "cand 3"],
     datasets: [
       {
         label: "Votes",

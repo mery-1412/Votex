@@ -18,7 +18,7 @@ router.post("/link-wallet", authMiddleware, async (req, res) => {
       walletAddress: normalizedWalletAddress,
       _id: { $ne: req.user.id },
     });
-
+ 
     if (existingUserWithWallet) {
       return res.status(409).json({
         success: false,
