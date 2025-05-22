@@ -11,7 +11,7 @@ import { useRouter } from 'next/router';
 const Dashboard = () => {
   const router = useRouter();
   const { user, verifyWallet, linkWallet, logout } = useContext(AuthContext);
-  const { currentAccount, connectWallet } = useContext(VotingContext);
+  const { currentAccount, connectWallet, connectSmartContract } = useContext(VotingContext);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isWalletLinked, setIsWalletLinked] = useState(false);
   const [walletError, setWalletError] = useState("");
@@ -66,7 +66,7 @@ const Dashboard = () => {
     ],
   };
 
-  // Check wallet status logic
+  // Update the checkWalletStatus function with admin wallet verification
   const checkWalletStatus = async () => {
     try {
       setWalletError("");
@@ -74,14 +74,14 @@ const Dashboard = () => {
 
       // First check if user is logged in
       if (!user || !user.id) {
-        setWalletError("You must be logged in to add candidates");
+        setWalletError("You must be logged in to access admin functions");
         setIsWalletLinked(false);
         return;
       }
 
       // Then check admin role
       if (user.role !== "admin") {
-        setWalletError("Only administrators can add candidates");
+        setWalletError("Only administrators can access this page");
         setIsWalletLinked(false);
         return;
       }
@@ -92,24 +92,41 @@ const Dashboard = () => {
         setIsWalletLinked(false);
         return;
       }
+      
+      // Check if the connected wallet matches the contract organizer address
+      const contract = await connectSmartContract();
+      if (!contract) {
+        throw new Error("Failed to connect to smart contract");
+      }
+      
+      const organizerAddress = await contract.organizer();
+      console.log("Contract organizer address:", organizerAddress);
+      console.log("Current connected wallet:", currentAccount);
+      
+      // Compare addresses case-insensitive
+      if (organizerAddress.toLowerCase() !== currentAccount.toLowerCase()) {
+        setWalletError("This wallet is not the authorized admin wallet. Please connect with the correct wallet.");
+        setIsWalletLinked(false);
+        return;
+      }
 
-      // Finally verify wallet
+      // Verify wallet is linked to admin account
       const isVerified = await verifyWallet(currentAccount);
       console.log("Wallet verification result:", isVerified, "for account:", currentAccount);
 
       if (isVerified) {
         setIsWalletLinked(true);
         setWalletError("");
-        setMessage("Wallet verified and linked to admin account");
+        setMessage("Admin wallet verified successfully");
         // Close the popup when verified
         setShowWalletPopup(false);
       } else {
         setIsWalletLinked(false);
-        setWalletError("This wallet is not linked to your admin account");
+        setWalletError("Admin wallet not linked to your account yet");
       }
     } catch (error) {
       console.error("Error verifying wallet:", error);
-      setWalletError("Error verifying wallet ownership");
+      setWalletError("Error verifying wallet ownership: " + error.message);
       setIsWalletLinked(false);
     }
   };
@@ -156,11 +173,16 @@ const Dashboard = () => {
     }
   };
 
+  // Update the handleLinkWallet function to only allow the correct admin wallet
   const handleLinkWallet = async () => {
     try {
       if (!user || !user.id) {
-        console.error("USERRRRRRRR", user , user.id, user.role);
         setWalletError("Please log in as an admin");
+        return;
+      }
+
+      if (user.role !== "admin") {
+        setWalletError("Only administrators can link the admin wallet");
         return;
       }
 
@@ -169,13 +191,29 @@ const Dashboard = () => {
         return;
       }
 
-      setMessage("Linking wallet to admin account...");
+      // Check if the connected wallet matches the contract organizer address
+      const contract = await connectSmartContract();
+      if (!contract) {
+        throw new Error("Failed to connect to smart contract");
+      }
+      
+      const organizerAddress = await contract.organizer();
+      console.log("Contract organizer address:", organizerAddress);
+      console.log("Current connected wallet:", currentAccount);
+      
+      // Compare addresses case-insensitive
+      if (organizerAddress.toLowerCase() !== currentAccount.toLowerCase()) {
+        setWalletError("Only the authorized admin wallet can be linked. Please connect with the correct wallet.");
+        return;
+      }
+
+      setMessage("Linking admin wallet to account...");
       setWalletError("");
 
       const result = await linkWallet(currentAccount);
       
       if (result.success) {
-        setMessage("Wallet linked successfully!");
+        setMessage("Admin wallet linked successfully!");
         // Recheck wallet status after linking
         await checkWalletStatus();
       } else {
@@ -183,7 +221,7 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error("Error linking wallet:", error);
-      setWalletError("Error linking wallet");
+      setWalletError("Error linking wallet: " + error.message);
     }
   };
 

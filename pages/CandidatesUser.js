@@ -14,19 +14,12 @@ const CandidatesUser = () => {
   const [error, setError] = useState(null);
   const [isVoting, setIsVoting] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
 
-
-  const {
-    getCurrentSessionCandidates,
-    getCandidateDetails,
-    whiteVote,
-    connectSmartContract,
-    currentAccount
-  } = useContext(VotingContext);
-
+  // Get hasVoted from context
+  const { hasVoted, getCurrentSessionCandidates, getCandidateDetails, whiteVote, connectSmartContract, currentAccount } = useContext(VotingContext);
 
   const router = useRouter();
-
 
   // Fetch all candidates
   useEffect(() => {
@@ -35,12 +28,10 @@ const CandidatesUser = () => {
         setLoading(true);
         const addresses = await getCurrentSessionCandidates();
 
-
         if (!addresses || addresses.length === 0) {
           setCandidates([]);
           return;
         }
-
 
         const details = await Promise.all(
           addresses.map(async (address, index) => {
@@ -65,7 +56,6 @@ const CandidatesUser = () => {
           })
         );
 
-
         setCandidates(details.filter(Boolean));
       } catch (err) {
         setError(err.message || "Failed to load candidates.");
@@ -74,10 +64,8 @@ const CandidatesUser = () => {
       }
     };
 
-
     fetchCandidates();
   }, [getCurrentSessionCandidates, getCandidateDetails]);
-
 
   const handleSeeMore = (candidate) => {
     router.push({
@@ -86,34 +74,44 @@ const CandidatesUser = () => {
     });
   };
 
-
   const handleRetry = () => {
     window.location.reload();
   };
-
 
   // White vote logic
   const handleWhiteVote = async () => {
     try {
       setIsVoting(true);
       setError(null);
+
+      if (!currentAccount) {
+        setError("Please connect your wallet first");
+        setShowErrorPopup(true);
+        return;
+      }
+
+      const result = await whiteVote();
       
-      // Use the whiteVote function from VotingContext which now has wallet verification
-      await whiteVote();
+      // Check if result is an error object
+      if (!result.success) {
+        setError(result.error);
+        setShowErrorPopup(true);
+        return;
+      }
       
-      // Show success popup
+      // If we get here, voting was successful
       setShowSuccessPopup(true);
-    } catch (err) {
-      console.error("White vote error:", err);
-      setError(err.message);
+    } catch (error) {
+      console.error("Error submitting white vote:", error);
+      setError(error.message || "Failed to submit white vote");
+      setShowErrorPopup(true);
     } finally {
       setIsVoting(false);
     }
   };
 
-
   const closeSuccessPopup = () => setShowSuccessPopup(false);
-
+  const closeErrorPopup = () => setShowErrorPopup(false);
 
   if (loading) {
     return (
@@ -128,7 +126,6 @@ const CandidatesUser = () => {
       </RequireAuth>
     );
   }
-
 
   if (error && !isVoting) {
     return (
@@ -150,12 +147,10 @@ const CandidatesUser = () => {
     );
   }
 
-
   return (
     <RequireAuth>
       <UserNavBar />
       <div className="flex flex-col h-screen">
-
 
         {/* ✅ Success Popup */}
         {showSuccessPopup && (
@@ -180,58 +175,65 @@ const CandidatesUser = () => {
           </div>
         )}
 
-
-        {/* ❌ Error Popup (wallet conflict) */}
-        {error && isVoting && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-              <div className="text-center">
-                <svg className="mx-auto h-12 w-12 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <h3 className="text-xl font-semibold text-gray-900 mt-3">Wallet Conflict</h3>
-                <p className="text-gray-600 mt-2">{error}</p>
-                <div className="mt-6 space-x-4">
+        {/* ❌ Error Popup */}
+        {error && showErrorPopup && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="relative w-96 p-8 bg-white bg-opacity-10 backdrop-blur-md rounded-lg border border-white border-opacity-30 text-white text-center">
+              <h1 className="text-2xl mb-6 text-red-400">Error</h1>
+              <p className="mb-6">{error}</p>
+              <div className="flex flex-col gap-4">
+                <button
+                  onClick={() => setShowErrorPopup(false)}
+                  className="w-full py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+                {error.includes("wallet") && (
                   <button
-                    onClick={() => setError(null)}
-                    className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition-colors"
+                    onClick={() => {
+                      setShowErrorPopup(false);
+                      router.push('/account'); 
+                    }}
+                    className="w-full py-3 bg-[#B342FF] hover:bg-purple-700 text-white rounded-lg transition-colors"
                   >
-                    Close
+                    Manage Wallet
                   </button>
-                  <button
-                    onClick={() => router.push('/account')}
-                    className="px-4 py-2 bg-[#B342FF] text-white rounded-md hover:bg-purple-700 transition-colors"
-                  >
-                    Change Wallet
-                  </button>
-                </div>
+                )}
               </div>
             </div>
           </div>
         )}
 
-
         {/* 🔘 Voting buttons */}
         <div className="fixed top-24 left-0 right-0 p-4 z-10">
           <div className="max-w-7xl mx-auto flex justify-end space-x-4">
+            {/* White vote button */}
             <button
               onClick={handleWhiteVote}
-              disabled={isVoting}
-              className={`px-6 py-2 rounded-lg text-white transition-all duration-300
-                ${isVoting ? 'bg-gray-500 cursor-not-allowed' : 'bg-[#B342FF] hover:bg-purple-700'}`}
+              disabled={hasVoted || isVoting}
+              className={`px-6 py-2 ${
+                hasVoted
+                  ? 'bg-gray-500 cursor-not-allowed' 
+                  : 'bg-[#B342FF] hover:bg-purple-700'
+              } text-white rounded-lg transition-all duration-300`}
             >
-              {isVoting ? 'Submitting...' : 'White Vote'}
+              {isVoting ? 'Processing...' : (hasVoted ? 'Already Voted' : 'White Vote')}
             </button>
+
+            {/* Multiple vote button */}
             <button
-              onClick={() => alert("Multiple voting feature coming soon!")}
-              className="px-6 py-2 bg-[#B342FF] text-white rounded-lg hover:bg-purple-700 transition-all duration-300"
+              onClick={() => router.push('/multiple-vote')}
+              disabled={hasVoted}
+              className={`px-6 py-2 ${
+                hasVoted
+                  ? 'bg-gray-500 cursor-not-allowed' 
+                  : 'bg-[#B342FF] hover:bg-purple-700'
+              } text-white rounded-lg transition-all duration-300`}
             >
-              Multiple Vote
+              {hasVoted ? 'Already Voted' : 'Multiple Vote'}
             </button>
           </div>
         </div>
-
 
         {/* 🧾 Candidate cards */}
         <div className="flex-1 p-6 overflow-auto ml-20 mt-36">
@@ -251,7 +253,6 @@ const CandidatesUser = () => {
     </RequireAuth>
   );
 };
-
 
 export default CandidatesUser;
 

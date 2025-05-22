@@ -19,6 +19,7 @@ const CandDetUser = () => {
   
   const [candidate, setCandidate] = useState(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false); 
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
@@ -75,36 +76,35 @@ const CandDetUser = () => {
       
       // Check if user is logged in
       if (!user || !user.id) {
-        throw new Error("You must be logged in to vote");
+        setError("You must be logged in to vote");
+        setShowErrorPopup(true);
+        return;
       }
 
       // Check if wallet is connected
       if (!currentAccount) {
-        throw new Error("Please connect your wallet");
+        setError("Please connect your wallet");
+        setShowErrorPopup(true);
+        return;
       }
 
       // Let the vote function handle all checks
-      const transaction = await vote(candidate.address);
+      const result = await vote(candidate.address);
       
-      if (!transaction) {
-        throw new Error("Vote transaction failed to start");
+      // Check if result is an error object
+      if (result && typeof result === 'object' && result.hasOwnProperty('success') && !result.success) {
+        setError(result.error);
+        setShowErrorPopup(true);
+        return;
       }
       
-      try {
-        // Wait for transaction confirmation
-        const receipt = await transaction.wait();
-        console.log("Vote confirmed:", receipt);
-        
-        // Update UI status
-        setHasVoted(true);
-        setShowSuccessPopup(true);
-      } catch (waitError) {
-        console.error("Transaction wait failed:", waitError);
-        throw new Error("Vote transaction failed. The transaction was sent but not confirmed.");
-      }
+      // If we get here, voting was successful
+      setHasVoted(true);
+      setShowSuccessPopup(true);
     } catch (error) {
       console.error("Voting failed:", error);
-      setError(error.message || "Failed to submit vote");
+      setError(error.message || "An error occurred while voting");
+      setShowErrorPopup(true);
     } finally {
       setLoading(false);
     }
@@ -199,15 +199,17 @@ const CandDetUser = () => {
             <button
               onClick={() => {
                 setShowSuccessPopup(false);
-                router.push('/dashboard'); // Redirect after successful vote
+                router.push('/home-user'); // Redirect after successful vote
               }}
               className="gradient-border-button"
             >
-              Return to Dashboard
+              Return to Home
             </button>
           </div>
         </div>
       )}
+
+     
     </RequireAuth>
   );
 };

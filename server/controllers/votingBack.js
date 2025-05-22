@@ -59,7 +59,6 @@ router.get("/verify-wallet", authMiddleware, async (req, res) => {
 
     const isVerified = user.walletAddress && user.walletAddress.toLowerCase() === walletAddress.toLowerCase();
 
-    console.log("WBAAAAAAAAAAAAAAACK:", isVerified, "for user:", user._id);
 
     return res.status(200).json({ success: true, isVerified });
   } catch (error) {
@@ -132,35 +131,5 @@ router.post("/record-vote", authMiddleware, async (req, res) => {
   }
 });
 
-// Add this new endpoint to check if wallet has been used by any user
-router.get("/check-wallet-used", async (req, res) => {
-  try {
-    const { walletAddress } = req.query;
-
-    if (!walletAddress) {
-      return res.status(400).json({ 
-        success: false, 
-        error: "Wallet address is required" 
-      });
-    }
-
-    // Check if any user has used this wallet address to vote
-    const userWithWallet = await User.findOne({
-      walletAddress: walletAddress.toLowerCase(),
-      hasVoted: true
-    });
-
-    return res.status(200).json({
-      success: true,
-      isUsed: !!userWithWallet
-    });
-  } catch (error) {
-    console.error("Error checking wallet usage:", error);
-    return res.status(500).json({ 
-      success: false, 
-      error: "Server error when checking wallet usage" 
-    });
-  }
-});
 
 module.exports = router;

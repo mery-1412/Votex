@@ -163,7 +163,7 @@ export const VotingProvider = ({ children }) => {
   };
 
 
-  // REPLACE with this simple version
+  // First, let's improve the checkIfUserVoted function to set hasVoted state consistently:
   const checkIfUserVoted = async () => {
     try {
       setIsLoading(true);
@@ -187,44 +187,92 @@ export const VotingProvider = ({ children }) => {
   };
 
 
-  // Simplify vote function and remove redundant checks
-  const vote = async (candidateAddress) => {
-    try {
-      if (!currentAccount) throw new Error("Wallet not connected");
-      if (!user || !user.id) throw new Error("You must be logged in to vote");
-     
-      // Use the contract connection
-      const contract = await connectSmartContract();
-      if (!contract) throw new Error("Failed to connect to smart contract");
-     
-      // Database checks
-      const userVotedInDb = await checkVoted();
-      if (userVotedInDb) {
-        throw new Error("This user account has already voted");
+  // Modify the vote function to properly catch and handle the wallet link error
+const vote = async (candidateAddress) => {
+  try {
+    if (!currentAccount) throw new Error("Wallet not connected");
+    if (!user || !user.id) throw new Error("You must be logged in to vote");
+    
+    // First verify wallet is linked to current user (like in whiteVote and multipleVote)
+    const isVerified = await verifyWallet(currentAccount);
+    
+    // If no wallet is linked to this user, try to link the current wallet
+    if (!isVerified && user && !user.walletAddress) {
+      console.log("No wallet linked to user, attempting to link current wallet");
+      try {
+        const linkResult = await linkWallet(currentAccount);
+        
+        if (!linkResult.success) {
+          // Instead of throwing an error, return a result object with the error
+          if (linkResult.error && linkResult.error.includes("linked to another")) {
+            return { 
+              success: false, 
+              error: "This wallet address is already linked to another account"
+            };
+          } else {
+            return { 
+              success: false, 
+              error: linkResult.error || "Failed to link wallet to your account"
+            };
+          }
+        }
+        
+        console.log("Wallet linked successfully");
+      } catch (linkError) {
+        console.error("Error linking wallet:", linkError);
+        // Return error object instead of throwing
+        return { 
+          success: false, 
+          error: linkError.message || "Error linking wallet to your account"
+        };
       }
-     
-      // Voting period check
-      const now = Math.floor(Date.now() / 1000);
-      if (now < votingPeriod.start || now > votingPeriod.end) {
-        throw new Error("Voting is not currently active");
-      }
-     
-      // Send transaction
-      const transaction = await contract.vote(candidateAddress, {
-        gasLimit: 500000,
-        gasPrice: ethers.utils.parseUnits('50', 'gwei')
-      });
-     
-      console.log("Vote transaction sent:", transaction.hash);
-      await recordVote();
-     
-      return transaction;
-    } catch (error) {
-      console.error("Vote failed:", error);
-      throw new Error(parseErrorMessage(error));
+    } else if (!isVerified) {
+      // Return error object instead of throwing
+      return { 
+        success: false, 
+        error: "This wallet is not linked to your account. Please use the wallet registered with your account."
+      };
     }
-  };
-
+    
+    // Database checks
+    const userVotedInDb = await checkVoted();
+    if (userVotedInDb) {
+      throw new Error("This user account has already voted");
+    }
+    
+    // Voting period check
+    const now = Math.floor(Date.now() / 1000);
+    if (now < votingPeriod.start || now > votingPeriod.end) {
+      throw new Error("Voting is not currently active");
+    }
+    
+    const contract = await connectSmartContract();
+    if (!contract) throw new Error("Failed to connect to smart contract");
+    
+    // Send transaction
+    const transaction = await contract.vote(candidateAddress, {
+      gasLimit: 500000,
+      gasPrice: ethers.utils.parseUnits('50', 'gwei')
+    });
+    
+    console.log("Vote transaction sent:", transaction.hash);
+    
+    // Wait for transaction to be mined (like in multipleVote)
+    const receipt = await transaction.wait();
+    console.log("Transaction confirmed with receipt:", receipt);
+    
+    // Record vote in database with wallet address
+    await recordVote(currentAccount);
+    setHasVoted(true); // This line is important
+    setMessage("Vote recorded successfully!");
+    
+    return transaction;
+  } catch (error) {
+    console.error("Vote failed:", error);
+    // Convert any runtime errors to regular errors that can be displayed in UI
+    throw new Error(parseErrorMessage(error));
+  }
+};
 
   const whiteVote = async () => {
     try {
@@ -237,32 +285,66 @@ export const VotingProvider = ({ children }) => {
       // If no wallet is linked to this user, try to link the current wallet
       if (!isVerified && user && !user.walletAddress) {
         console.log("No wallet linked to user, attempting to link current wallet");
-        const linkResult = await linkWallet(currentAccount);
-        
-        if (!linkResult.success) {
-          throw new Error(linkResult.error || "Failed to link wallet to your account");
+        try {
+          const linkResult = await linkWallet(currentAccount);
+          
+          if (!linkResult.success) {
+            // Instead of throwing an error, return a result object with the error
+            if (linkResult.error && linkResult.error.includes("linked to another")) {
+              return { 
+                success: false, 
+                error: "This wallet address is already linked to another account"
+              };
+            } else {
+              return { 
+                success: false, 
+                error: linkResult.error || "Failed to link wallet to your account"
+              };
+            }
+          }
+          
+          console.log("Wallet linked successfully");
+        } catch (linkError) {
+          console.error("Error linking wallet:", linkError);
+          // Return error object instead of throwing
+          return { 
+            success: false, 
+            error: linkError.message || "Error linking wallet to your account"
+          };
         }
-        
-        console.log("Wallet linked successfully");
       } else if (!isVerified) {
-        // If user has a different wallet linked
-        throw new Error("This wallet is not linked to your account. Please use the wallet registered with your account.");
+        // Return error object instead of throwing
+        return { 
+          success: false, 
+          error: "This wallet is not linked to your account. Please use the wallet registered with your account."
+        };
       }
       
       // Database checks
       const userVotedInDb = await checkVoted();
       if (userVotedInDb) {
-        throw new Error("This user account has already voted");
+        return {
+          success: false,
+          error: "This user account has already voted"
+        };
       }
       
-      // Rest of the function remains the same
+      // Voting period check
       const now = Math.floor(Date.now() / 1000);
       if (now < votingPeriod.start || now > votingPeriod.end) {
-        throw new Error("Voting is not currently active");
+        return {
+          success: false,
+          error: "Voting is not currently active"
+        };
       }
       
       const contract = await connectSmartContract();
-      if (!contract) throw new Error("Failed to connect to smart contract");
+      if (!contract) {
+        return {
+          success: false,
+          error: "Failed to connect to smart contract"
+        };
+      }
       
       // Send white vote transaction
       const transaction = await contract.whiteVote({
@@ -271,14 +353,27 @@ export const VotingProvider = ({ children }) => {
       });
       
       console.log("White vote transaction sent:", transaction.hash);
-      await recordVote(currentAccount);  // Include wallet address when recording vote
+      
+      // Wait for transaction to be mined
+      const receipt = await transaction.wait();
+      console.log("Transaction confirmed with receipt:", receipt);
+      
+      // Record vote in database with wallet address
+      await recordVote(currentAccount);
       setHasVoted(true);
       setMessage("White vote recorded successfully!");
       
-      return transaction;
+      return {
+        success: true,
+        transaction: transaction
+      };
     } catch (error) {
       console.error("White vote failed:", error);
-      throw new Error(parseErrorMessage(error));
+      // Return error object instead of throwing
+      return {
+        success: false,
+        error: parseErrorMessage(error)
+      };
     }
   };
 
@@ -287,43 +382,80 @@ export const VotingProvider = ({ children }) => {
     try {
       if (!currentAccount) throw new Error("Wallet not connected");
       if (!user || !user.id) throw new Error("You must be logged in to vote");
-      
+
       // First check if the user has any wallet linked
       const isVerified = await verifyWallet(currentAccount);
       
       // If no wallet is linked to this user, try to link the current wallet
       if (!isVerified && user && !user.walletAddress) {
         console.log("No wallet linked to user, attempting to link current wallet");
-        const linkResult = await linkWallet(currentAccount);
-        
-        if (!linkResult.success) {
-          throw new Error(linkResult.error || "Failed to link wallet to your account");
+        try {
+          const linkResult = await linkWallet(currentAccount);
+          
+          if (!linkResult.success) {
+            // Instead of throwing an error, return a result object with the error
+            if (linkResult.error && linkResult.error.includes("linked to another")) {
+              return { 
+                success: false, 
+                error: "This wallet address is already linked to another account"
+              };
+            } else {
+              return { 
+                success: false, 
+                error: linkResult.error || "Failed to link wallet to your account"
+              };
+            }
+          }
+          
+          console.log("Wallet linked successfully");
+        } catch (linkError) {
+          console.error("Error linking wallet:", linkError);
+          // Return error object instead of throwing
+          return { 
+            success: false, 
+            error: linkError.message || "Error linking wallet to your account"
+          };
         }
-        
-        console.log("Wallet linked successfully");
       } else if (!isVerified) {
-        // If user has a different wallet linked
-        throw new Error("This wallet is not linked to your account. Please use the wallet registered with your account.");
+        // Return error object instead of throwing
+        return { 
+          success: false, 
+          error: "This wallet is not linked to your account. Please use the wallet registered with your account."
+        };
       }
       
       if (!Array.isArray(candidateAddresses) || candidateAddresses.length < 2) {
-        throw new Error("Multiple voting requires at least 2 candidates");
+        return {
+          success: false,
+          error: "Multiple voting requires at least 2 candidates"
+        };
       }
 
       // Database check
       const userVotedInDb = await checkVoted();
       if (userVotedInDb) {
-        throw new Error("This user account has already voted");
+        return {
+          success: false,
+          error: "This user account has already voted"
+        };
       }
 
       // Voting period check
       const now = Math.floor(Date.now() / 1000);
       if (now < votingPeriod.start || now > votingPeriod.end) {
-        throw new Error("Voting is not currently active");
+        return {
+          success: false,
+          error: "Voting is not currently active"
+        };
       }
 
       const contract = await connectSmartContract();
-      if (!contract) throw new Error("Failed to connect to smart contract");
+      if (!contract) {
+        return {
+          success: false,
+          error: "Failed to connect to smart contract"
+        };
+      }
 
       // Send multiple vote transaction
       const transaction = await contract.multipleVote(candidateAddresses, {
@@ -332,15 +464,36 @@ export const VotingProvider = ({ children }) => {
       });
 
       console.log("Multiple vote transaction sent:", transaction.hash);
-      await recordVote(currentAccount);  // Include wallet address when recording vote
+      
+      // Wait for transaction to be mined
+      const receipt = await transaction.wait();
+      console.log("Transaction confirmed with receipt:", receipt);
+      
+      // Record vote in the database
+      await recordVote(currentAccount);
+      
+      // Update UI state
       setHasVoted(true);
       setMessage("Multiple votes recorded successfully!");
 
-      return transaction;
+      return {
+        success: true,
+        transaction: transaction
+      };
     } catch (error) {
       console.error("Multiple vote failed:", error);
-      throw new Error(parseErrorMessage(error));
+      // Return error object instead of throwing
+      return {
+        success: false,
+        error: parseErrorMessage(error)
+      };
     }
+  };
+
+
+  // Add a dedicated function to update the UI after any vote
+  const markUserAsVoted = () => {
+    setHasVoted(true);
   };
 
 

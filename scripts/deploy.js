@@ -17,7 +17,7 @@ async function main() {
   await tx.wait();
   console.log("Organizer set to:", admin.address);
 }
-
+ 
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
