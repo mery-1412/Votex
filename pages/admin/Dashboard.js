@@ -13,7 +13,9 @@ const Dashboard = () => {
   const { user, verifyWallet, linkWallet, logout } = useContext(AuthContext);
   const { 
     currentAccount, 
+     connectSmartContract,
     connectWallet, 
+    getCurrentSessionData,
     getCurrentSessionCandidates, // Use this instead of getAllCandidates
     getCandidateDetails 
   } = useContext(VotingContext);
@@ -31,6 +33,8 @@ const Dashboard = () => {
     labels: [],
     data: []
   });
+  // Add new state for winner
+  const [currentWinner, setCurrentWinner] = useState(null);
 
   // Chart data
   const sampleData_line = {
@@ -319,7 +323,6 @@ const Dashboard = () => {
       const contract = await connectSmartContract();
       if (!contract) return;
 
-      // Get current session
       const currentSessionId = await contract.currentSessionId();
       if (currentSessionId.toString() === "0") {
         setVoteTimeline({ labels: [], data: [] });
@@ -329,8 +332,8 @@ const Dashboard = () => {
       // Get votes per minute data from contract
       const [timePoints, voteCounts] = await contract.getVotesPerMinute(currentSessionId);
       
-      // Convert timestamps to hour format and aggregate votes by hour
-      const hourlyVotes = new Map(); // Use Map to aggregate votes by hour
+      // Process and ensure positive values
+      const hourlyVotes = new Map();
       
       timePoints.forEach((timestamp, index) => {
         const date = new Date(timestamp.toNumber() * 1000);
@@ -341,30 +344,137 @@ const Dashboard = () => {
           month: 'short'
         });
         
+        const votes = Math.max(0, voteCounts[index].toNumber()); // Ensure positive values
         const currentVotes = hourlyVotes.get(hourKey) || 0;
-        hourlyVotes.set(hourKey, currentVotes + voteCounts[index].toNumber());
+        hourlyVotes.set(hourKey, currentVotes + votes);
       });
 
-      // Convert Map to arrays for chart
-      const sortedHours = Array.from(hourlyVotes.keys()).sort((a, b) => {
-        return new Date(a) - new Date(b);
+      // Sort hours chronologically
+      const sortedHours = Array.from(hourlyVotes.keys()).sort((a, b) => 
+        new Date(a) - new Date(b)
+      );
+
+      // Calculate cumulative votes
+      let cumulativeVotes = 0;
+      const cumulativeData = sortedHours.map(hour => {
+        cumulativeVotes += hourlyVotes.get(hour);
+        return cumulativeVotes;
       });
 
       setVoteTimeline({
         labels: sortedHours,
-        data: sortedHours.map(hour => hourlyVotes.get(hour))
+        data: cumulativeData // Use cumulative votes
       });
 
     } catch (error) {
       console.error("Error fetching vote timeline:", error);
+      setVoteTimeline({ labels: [], data: [] });
     }
   };
 
-  // Update useEffect to run when currentAccount changes
+
+
+
+
+  // Update the fetchCurrentWinner function
+  // Update the fetchCurrentWinner function
+const fetchCurrentWinner = async () => {
+  try {
+    const contract = await connectSmartContract();
+    if (!contract) return;
+
+    // Get current session ID and details
+    const sessionId = await contract.currentSessionId();
+    console.log("CURRENNNNNNNTTTT QZQQUIN session ID:", sessionId.toString());
+    if (sessionId.toString() === "0") {
+      setCurrentWinner(null);
+      return;
+    }
+
+    const session = await contract.getSession(sessionId);
+    if (!session) {
+      setCurrentWinner(null);
+      return;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const endTime = session.endPeriod.toNumber();
+
+    console.log("Session end time:", new Date(endTime * 1000));
+    console.log("Current time:", new Date(now * 1000));
+    console.log("Session has ended:", now > endTime);
+
+    if (now <= endTime) {
+      console.log("Session still active or hasn't started");
+      setCurrentWinner(null);
+      return;
+    }
+
+    try {
+      // Get winner address and data separately
+      const winnerAddress = await contract.getCurrentSessionWinner();
+      console.log("WINNNNERRRRRRRRRRRRRRRRRRRRRRRRR address:", winnerAddress);
+
+      // Check if winner address is valid
+      if (!winnerAddress || winnerAddress === "0x0000000000000000000000000000000000000000") {
+        console.log("No winner address available");
+        setCurrentWinner(null);
+        return;
+      }
+
+      // Get candidate details using the winner address
+      const winnerData = await contract.getCandidateData(winnerAddress);
+      console.log("Raw winner data:", winnerData);
+
+      // Extract the required fields from the array response
+      setCurrentWinner({
+        name: winnerData[1], // name is at index 1
+        party: winnerData[3], // party is at index 3
+        imageUrl: winnerData[4], // imageUrl is at index 4
+        voteCount: winnerData[5] ? winnerData[5].toString() : "0" // voteCount is at index 5
+      });
+
+      console.log("Winner data processed successfully");
+
+    } catch (winnerError) {
+      console.error("Error processing winner data:", winnerError);
+      setCurrentWinner(null);
+    }
+  } catch (error) {
+    console.error("Error fetching winner:", error);
+    setCurrentWinner(null);
+  }
+};
+
+// Update the useEffect to check for winner periodically
+useEffect(() => {
+  if (currentAccount) {
+    fetchCandidatesData();
+    fetchVoteTimeline();
+    fetchCurrentWinner();
+
+    // Check every minute for updates
+    const interval = setInterval(() => {
+      fetchCurrentWinner();
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }
+}, [currentAccount]);
+
+  // Add an interval to check for winner regularly
   useEffect(() => {
     if (currentAccount) {
       fetchCandidatesData();
       fetchVoteTimeline();
+      fetchCurrentWinner();
+
+      // Check every minute for updates
+      const interval = setInterval(() => {
+        fetchCurrentWinner();
+      }, 60000);
+
+      return () => clearInterval(interval);
     }
   }, [currentAccount]);
 
@@ -429,6 +539,52 @@ const Dashboard = () => {
             </button>
           </div>
           
+          {/* Winner Card */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold text-purple-800 mb-4">Current Session Winner</h3>
+            {currentWinner ? (
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div className="flex flex-col md:flex-row">
+                  {/* Winner Image */}
+                  <div className="w-full md:w-1/3 h-64 relative">
+                    <img
+                      src={currentWinner.imageUrl}
+                      alt={currentWinner.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  
+                  {/* Winner Details */}
+                  <div className="w-full md:w-2/3 p-6">
+                    <div className="flex items-center mb-4">
+                      <span className="text-4xl mr-3">👑</span>
+                      <h4 className="text-2xl font-bold text-purple-800">{currentWinner.name}</h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-purple-50 p-4 rounded-lg">
+                        <p className="text-sm text-purple-600">Party</p>
+                        <p className="text-lg font-semibold text-purple-800">{currentWinner.party}</p>
+                      </div>
+                      <div className="bg-purple-50 p-4 rounded-lg">
+                        <p className="text-sm text-purple-600">Total Votes</p>
+                        <p className="text-lg font-semibold text-purple-800">{currentWinner.voteCount}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+                <div className="w-20 h-20 mx-auto mb-4 bg-purple-100 rounded-full flex items-center justify-center">
+                  <svg className="w-10 h-10 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p className="text-gray-500">No winner yet. The winner will be displayed here once the voting session ends.</p>
+              </div>
+            )}
+          </div>
+
           {/* Charts section */}
           <div className="flex flex-col items-center">
   <div className="flex flex-wrap justify-center gap-4 w-full mb-4">
@@ -445,15 +601,9 @@ const Dashboard = () => {
               legend: {
                 position: 'bottom',
               },
-              title: {
-                display: true,
-                text: 'Total Votes Over Time'
-              },
               tooltip: {
                 callbacks: {
-                  label: function(context) {
-                    return `Total Votes: ${context.parsed.y}`;
-                  }
+                  label: (context) => `Total Votes: ${Math.max(0, context.parsed.y)}`
                 }
               }
             },
@@ -461,38 +611,20 @@ const Dashboard = () => {
               y: {
                 beginAtZero: true,
                 min: 0,
+                suggestedMax: Math.max(...(voteTimeline.data || [0])) + 1,
                 ticks: {
                   stepSize: 1,
-                  precision: 0
+                  precision: 0,
+                  callback: (value) => Math.max(0, parseInt(value))
                 },
-                title: {
-                  display: true,
-                  text: 'Total Number of Votes'
+                grid: {
+                  drawBorder: false
                 }
               },
               x: {
-                title: {
-                  display: true,
-                  text: 'Time'
-                },
-                ticks: {
-                  maxRotation: 45,
-                  minRotation: 45
+                grid: {
+                  display: false
                 }
-              }
-            },
-            interaction: {
-              intersect: false,
-              mode: 'index'
-            },
-            elements: {
-              line: {
-                tension: 0.4
-              },
-              point: {
-                radius: 4,
-                hitRadius: 10,
-                hoverRadius: 6
               }
             }
           }}

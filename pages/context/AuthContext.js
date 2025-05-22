@@ -77,6 +77,7 @@ export const AuthContextProvider = ({ children }) => {
           withCredentials: true
         }
       );
+
       
       return response.data.isVerified;
     } catch (error) {
@@ -101,11 +102,18 @@ export const AuthContextProvider = ({ children }) => {
   };
 
   // Record that user has voted
-  const recordVote = async () => {
+  const recordVote = async (walletAddress) => {
     try {
+      const payload = {};
+      
+      // If wallet address is provided, include it in the request
+      if (walletAddress) {
+        payload.walletAddress = walletAddress;
+      }
+      
       const response = await axios.post(
         'http://localhost:5000/api/voter/record-vote',
-        {},
+        payload,
         { withCredentials: true }
       );
       

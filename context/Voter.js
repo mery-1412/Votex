@@ -8,7 +8,7 @@ import { AuthContext } from "../pages/context/AuthContext"; // Import Auth Conte
 // Pinata API Keys
 const PINATA_API_KEY = "7aa86323c46359e68595";
 const PINATA_API_SECRET = "943c3d77c06632fdf5c1c7861167675be909d1d6886fc0e23492aaa507cd6f19";
-const PINATA_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIzZGI4MGUzZC1jZDA4LTQxYTgtODFmZS01MTllODRjZTYyODkiLCJlbWFpbCI6ImV2b3Rpbmd2b3RleEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkEXIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiMjAzMWYzZjVhZTYzYTU2MTYyMTQiLCJzY29wZWRLZXlTZWNyZXQiOiI3N2Y5NWRiYWQzNGEzNDhmZDk3YmFhYjYzOTEyZmQwMzZmZGUyZTQyMGEzMWM5ZTRlODExZWE3ODczMGY3NTEwIiwiZXhwIjoxNzc3OTE3NDU3fQ.fMhqeXrMaQB-T-O7-_i5ILMXcM79ncck1PrYDGl5uV8";
+const PINATA_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIzZGI4MGUzZC1jZDA4LTQxYTgtODFmZS01MTllODRjZTYyODkiLCJlbWFpbCI6ImV2b3Rpbmd2b3RleEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiMjAzMWYzZjVhZTYzYTU2MTYyMTQiLCJzY29wZWRLZXlTZWNyZXQiOiI3N2Y5NWRiYWQzNGEzNDhmZDk3YmFhYjYzOTEyZmQwMzZmZGUyZTQyMGEzMWM5ZTRlODExZWE3ODczMGY3NTEwIiwiZXhwIjoxNzc3OTE3NDU3fQ.fMhqeXrMaQB-T-O7-_i5ILMXcM79ncck1PrYDGl5uV8";
 // Remove redundant RPC configuration - keep only ARCHIVE_NODES
 const ARCHIVE_NODES = {
   SEPOLIA: "https://eth-sepolia.public.blastapi.io", // Blast API (archive node)
@@ -597,83 +597,24 @@ const getVotingPeriod = async () => {
     }
   };
 
-  // Add this function to your VotingContext provider
+  // Add this to your VotingContext provider's functions
 
   const getSessionData = async (sessionId) => {
     try {
       const contract = await connectSmartContract();
-      if (!contract) {
-        throw new Error("Contract not initialized");
-      }
+      if (!contract) throw new Error("Contract not initialized");
 
-      // Get session data
-      const session = await contract.getSession(sessionId);
-      if (!session) {
-        throw new Error("Session not found");
-      }
-
-      // Get candidates for this session
-      const candidates = await contract.getCurrentSessionCandidates();
-      const candidatesData = await Promise.all(
-        candidates.map(async (address) => {
-          try {
-            const data = await contract.getCandidateData(address);
-            // Convert BigNumber to string immediately
-            return {
-              name: data.name || "Unknown",
-              voteCount: data.voteCount ? data.voteCount.toString() : "0"
-            };
-          } catch (error) {
-            console.error(`Error fetching candidate data for ${address}:`, error);
-            return null;
-          }
-        })
-      );
-
-      // Filter out any failed candidate data
-      const validCandidatesData = candidatesData.filter(Boolean);
-
-      // Get winner info with proper error handling
-      let winnerData = {
-        name: "No winner yet",
-        address: "0x0000000000000000000000000000000000000000",
-        voteCount: "0"
-      };
-
-      try {
-        const winner = await contract.getCurrentSessionWinner();
-        if (winner && winner !== "0x0000000000000000000000000000000000000000") {
-          const winnerDetails = await contract.getCandidateData(winner);
-          if (winnerDetails) {
-            winnerData = {
-              name: winnerDetails.name || "Unknown",
-              address: winner,
-              voteCount: winnerDetails.voteCount ? winnerDetails.voteCount.toString() : "0"
-            };
-          }
-        }
-      } catch (error) {
-        console.log("No winner data available yet:", error);
-      }
-
-      // Convert all BigNumber values to strings
-      const startTime = session.startPeriod ? session.startPeriod.toString() : "0";
-      const endTime = session.endPeriod ? session.endPeriod.toString() : "0";
-
+      const data = await contract.getSessionData(sessionId);
       return {
-        sessionId: sessionId.toString(),
-        year: new Date().getFullYear().toString(),
-        candidateNames: validCandidatesData.map(c => c.name),
-        voteCounts: validCandidatesData.map(c => c.voteCount),
-        winnerName: winnerData.name,
-        winnerAddress: winnerData.address,
-        winnerVoteCount: winnerData.voteCount,
-        startTime: startTime,
-        endTime: endTime,
-        isActive: !!session.isActive
+        year: data.year,
+        candidateNames: data.candidateNames,
+        voteCounts: data.voteCounts,
+        winnerName: data.winnerName,
+        winnerAddress: data.winnerAddress,
+        winnerVoteCount: data.winnerVoteCount
       };
     } catch (error) {
-      console.error("Error getting session data:", error);
+      console.error("Error fetching session data:", error);
       throw error;
     }
   };

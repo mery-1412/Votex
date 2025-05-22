@@ -19,23 +19,35 @@ ChartJS.register(
   Legend
 );
 
-const LineChart = ({ data }) => {
-  const config = {
-    data,
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          position: 'top',
-        },
-        tooltip: {
-          enabled: true,
-        },
-      },
+const LineChart = ({ data, options }) => {
+  const defaultOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+      }
     },
+    scales: {
+      y: {
+        beginAtZero: true,
+        min: 0,
+        grace: '5%',
+        ticks: {
+          stepSize: 1,
+          precision: 0,
+          callback: (value) => Math.max(0, parseInt(value))
+        }
+      }
+    }
   };
 
-  return <Line {...config} />;
+  const mergedOptions = {
+    ...defaultOptions,
+    ...options
+  };
+
+  return <Line data={data} options={mergedOptions} />;
 };
 
 export default LineChart;

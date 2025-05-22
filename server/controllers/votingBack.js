@@ -59,6 +59,8 @@ router.get("/verify-wallet", authMiddleware, async (req, res) => {
 
     const isVerified = user.walletAddress && user.walletAddress.toLowerCase() === walletAddress.toLowerCase();
 
+    console.log("WBAAAAAAAAAAAAAAACK:", isVerified, "for user:", user._id);
+
     return res.status(200).json({ success: true, isVerified });
   } catch (error) {
     console.error("Error verifying wallet:", error);

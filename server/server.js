@@ -39,5 +39,9 @@ mongoose
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.error("MongoDB Connection Error:", err));
 
-const PORT = process.env.PORT ;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Update the port configuration to have a fallback
+const PORT = process.env.PORT || 5000;  // Add fallback port
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Archive API available at http://localhost:${PORT}/api/archives`);
+});

@@ -1,3 +1,5 @@
+"use client";
+
 import { Modal, Label } from "flowbite-react";
 import { useState, useContext, useEffect } from "react";
 import { VotingContext } from "../context/Voter"; 
@@ -25,6 +27,7 @@ export function AddProductDialog() {
     if (user?.role === 'admin' && currentAccount) {
       // Check wallet verification with the improved verification function
       const isVerified = await verifyWallet(currentAccount);
+      console.log("WALLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLET verification result:", isVerified, "for account:", currentAccount);
       setIsWalletVerified(isVerified);
       
       if (!isVerified) {
@@ -63,10 +66,9 @@ export function AddProductDialog() {
     try {
       const ipfsHash = await uploadToPinata(image);
       setIpfs(ipfsHash);
-      setMsg("Image uploaded successfully to IPFS");
     } catch (error) {
       setMsg("Error uploading to IPFS");
-      console.error("❌ Error uploading to IPFS:", error);
+      console.error(" Error uploading to IPFS:", error);
     }
     setUploading(false);
   };
@@ -75,6 +77,7 @@ export function AddProductDialog() {
     e.preventDefault();
 
     const verified = await checkWalletVerification();
+    console.log("Wallet verification status:", verified);
     if (!verified) {
       setMsg("Please connect and verify your admin wallet in the dashboard first");
       return;
