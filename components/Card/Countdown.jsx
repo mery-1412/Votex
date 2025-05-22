@@ -87,6 +87,9 @@ const Countdown = ({ checkWalletVerification }) => {
   }, []);
 
   useEffect(() => {
+
+
+    
     if (!countdownStarted || !eventEndDate) return;
 
     const interval = setInterval(() => {

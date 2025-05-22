@@ -87,6 +87,33 @@ const CandidatesUser = () => {
     );
   }
 
+  if (!candidates || candidates.length === 0) {
+    return (
+      <RequireAuth>
+        <div className="">
+          <UserNavBar/>
+          <div className="flex h-screen items-center justify-center">
+            <div className="text-center space-y-6">
+              <h2 className="text-4xl font-semibold bg-gradient-to-r from-black to-black bg-clip-text text-transparent">
+                Voting Hasn't Started Yet!
+              </h2>
+              <p className="text-gray-400 text-xl max-w-md mx-auto">
+                Check back soon to see the candidates and cast your vote.
+              </p>
+              <button
+                onClick={handleRetry}
+                className="mt-6 px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-500 text-white rounded-full 
+                  hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200"
+              >
+                Refresh Page
+              </button>
+            </div>
+          </div>
+        </div>
+      </RequireAuth>
+    );
+  }
+
   return (
     <RequireAuth>
       <div className="">

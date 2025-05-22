@@ -14,6 +14,8 @@ const nextConfig = {
       { source: "/voter-list", destination: "/voterList" },
       { source: "/admin-login", destination: "/adminAuth/LoginAdmin" },
       { source: "/home-user", destination: "/HomeUser" },
+      { source: "/results-user", destination: "/ResultsUser" },
+
       { source: "/dashboard", destination: "/admin/Dashboard" },
       { source: "/upload", destination: "/UploadFile" },
       { source: "/CandDet/:id", destination: "/CandDetUser" },

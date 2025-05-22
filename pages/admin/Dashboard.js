@@ -11,12 +11,17 @@ import { useRouter } from 'next/router';
 const Dashboard = () => {
   const router = useRouter();
   const { user, verifyWallet, linkWallet, logout } = useContext(AuthContext);
-  const { currentAccount, connectWallet } = useContext(VotingContext);
+  const { currentAccount, connectWallet, getAllCandidates, getCandidateDetails } = useContext(VotingContext);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isWalletLinked, setIsWalletLinked] = useState(false);
   const [walletError, setWalletError] = useState("");
   const [message, setMessage] = useState("");
   const [showWalletPopup, setShowWalletPopup] = useState(false);
+  const [chartData, setChartData] = useState({
+    labels: [],
+    votes: [],
+    candidates: []
+  });
 
   // Chart data
   const sampleData_line = {
@@ -117,22 +122,29 @@ const Dashboard = () => {
   // Check wallet status when component mounts or when user/account changes
   useEffect(() => {
     const verifyAdminWallet = async () => {
-      console.log("Dashboard wallet status:", {
-        currentAccount,
-        userWallet: user?.walletAddress,
-        isAdmin: user?.role === 'admin'
+      console.log("Verification state:", {
+        isLoggedIn: !!user?.id,
+        userRole: user?.role,
+        hasWallet: !!currentAccount,
+        walletAddress: currentAccount
       });
       
-      if (user && user.id && currentAccount) {
-        await checkWalletStatus();
-      } else if (!user || !user._id) {
-        setWalletError("You must be logged in to add candidates");
+      if (!user || !user.id) {
+        setWalletError("Please log in first");
+        return;
       }
-      
-      // Show popup if wallet not connected or not linked
-      if (user && user.role === "admin" && (!currentAccount || !isWalletLinked)) {
-        setShowWalletPopup(true);
+
+      if (user.role.toLowerCase() !== "admin") {
+        setWalletError("Account is not an admin");
+        return;
       }
+
+      if (!currentAccount) {
+        setWalletError("Please connect your wallet");
+        return;
+      }
+
+      await checkWalletStatus();
     };
 
     verifyAdminWallet();
@@ -158,7 +170,10 @@ const Dashboard = () => {
 
   const handleLinkWallet = async () => {
     try {
-      if (!user || !user._id) {
+    
+   if (!user || !user.id) { 
+     console.log("user issss", user.id, user.role);
+      
         setWalletError("Please log in as an admin");
         return;
       }
@@ -246,6 +261,83 @@ const Dashboard = () => {
     );
   };
 
+  // Fetch candidates data for charts
+  useEffect(() => {
+    const fetchCandidatesData = async () => {
+      try {
+        const candidates = await getAllCandidates();
+        const detailedData = await Promise.all(
+          candidates.map(candidate => getCandidateDetails(candidate._address))
+        );
+
+        // Filter out any null values from failed fetches
+        const validData = detailedData.filter(data => data !== null);
+
+        // Prepare chart data
+        const labels = validData.map(c => c.name);
+        const votes = validData.map(c => parseInt(c.voteCount));
+        const parties = validData.map(c => c.party);
+
+        setChartData({
+          labels,
+          votes,
+          parties
+        });
+
+      } catch (error) {
+        console.error("Error fetching candidates data:", error);
+      }
+    };
+
+    fetchCandidatesData();
+  }, []); // Run once on component mount
+
+  // Update the chart data objects
+  const chartData_line = {
+    labels: chartData.labels,
+    datasets: [{
+      label: 'Votes',
+      data: chartData.votes,
+      fill: false,
+      borderColor: '#B342FF',
+      tension: 0.4,
+    }]
+  };
+
+  const chartData_bar = {
+    labels: chartData.labels,
+    datasets: [{
+      label: 'Votes',
+      data: chartData.votes,
+      backgroundColor: '#B342FF',
+      borderColor: '#B342FF',
+      borderWidth: 1,
+    }]
+  };
+
+  const chartData_pie = {
+    labels: chartData.labels,
+    datasets: [{
+      label: 'Votes',
+      data: chartData.votes,
+      backgroundColor: [
+        '#B342FF',
+        '#C45AFF',
+        '#D674FF',
+        '#E98EFF',
+        '#FAA8FF',
+      ],
+      borderColor: [
+        '#B342FF',
+        '#C45AFF',
+        '#D674FF',
+        '#E98EFF',
+        '#FAA8FF',
+      ],
+      borderWidth: 1,
+    }]
+  };
+
   return (
     <RequireAdmin>
       <div className="dashboard-page flex h-screen">
@@ -263,33 +355,82 @@ const Dashboard = () => {
           
           {/* Charts section */}
           <div className="flex flex-col items-center">
-            {/* Top row: Line and Bar charts */}
-            <div className="flex flex-wrap justify-center gap-x-2 w-full">
-              <div className="w-full max-w-[500px] h-[500px] bg-white rounded-xl px-3 py-2">
-                <Line
-                  data={sampleData_line}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                  }}
-                />
-              </div>
-              <div className="w-full max-w-[500px] h-[500px] bg-white rounded-xl px-3 py-2">
-                <BarChart
-                  data={sampleData_bar}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                      },
-                    },
-                  }}
-                />
-              </div>
-            </div>
-          </div>
+  <div className="flex flex-wrap justify-center gap-4 w-full mb-4">
+    {/* Line Chart */}
+    <div className="w-full md:w-[48%] bg-white rounded-xl p-4 shadow-lg">
+      <h3 className="text-lg font-semibold mb-2 text-purple-600">Votes Timeline</h3>
+      <div className="h-[400px]">
+        <Line
+          data={chartData_line}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+              },
+              title: {
+                display: true,
+                text: 'Votes per Candidate'
+              }
+            }
+          }}
+        />
+      </div>
+    </div>
+
+    {/* Bar Chart */}
+    <div className="w-full md:w-[48%] bg-white rounded-xl p-4 shadow-lg">
+      <h3 className="text-lg font-semibold mb-2 text-purple-600">Vote Distribution</h3>
+      <div className="h-[400px]">
+        <BarChart
+          data={chartData_bar}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: 'Number of Votes'
+                }
+              }
+            }
+          }}
+        />
+      </div>
+    </div>
+  </div>
+
+  {/* Add total votes summary */}
+  <div className="w-full max-w-3xl mt-4 p-4 bg-white rounded-xl shadow-lg">
+    <h3 className="text-lg font-semibold mb-4 text-purple-600">Voting Summary</h3>
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="p-4 bg-purple-50 rounded-lg">
+        <p className="text-sm text-purple-600">Total Candidates</p>
+        <p className="text-2xl font-bold text-purple-800">{chartData.labels.length}</p>
+      </div>
+      <div className="p-4 bg-purple-50 rounded-lg">
+        <p className="text-sm text-purple-600">Total Votes</p>
+        <p className="text-2xl font-bold text-purple-800">
+          {chartData.votes.reduce((a, b) => a + b, 0)}
+        </p>
+      </div>
+      <div className="p-4 bg-purple-50 rounded-lg">
+        <p className="text-sm text-purple-600">Leading Candidate</p>
+        <p className="text-2xl font-bold text-purple-800">
+          {chartData.labels[chartData.votes.indexOf(Math.max(...chartData.votes))] || 'N/A'}
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
         </div>
         
         {/* Wallet Popup */}

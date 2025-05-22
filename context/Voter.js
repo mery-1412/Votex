@@ -8,7 +8,7 @@ import { AuthContext } from "../pages/context/AuthContext"; // Import Auth Conte
 // Pinata API Keys
 const PINATA_API_KEY = "7aa86323c46359e68595";
 const PINATA_API_SECRET = "943c3d77c06632fdf5c1c7861167675be909d1d6886fc0e23492aaa507cd6f19";
-const PINATA_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIzZGI4MGUzZC1jZDA4LTQxYTgtODFmZS01MTllODRjZTYyODkiLCJlbWFpbCI6ImV2b3Rpbmd2b3RleEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiMjAzMWYzZjVhZTYzYTU2MTYyMTQiLCJzY29wZWRLZXlTZWNyZXQiOiI3N2Y5NWRiYWQzNGEzNDhmZDk3YmFhYjYzOTEyZmQwMzZmZGUyZTQyMGEzMWM5ZTRlODExZWE3ODczMGY3NTEwIiwiZXhwIjoxNzc3OTE3NDU3fQ.fMhqeXrMaQB-T-O7-_i5ILMXcM79ncck1PrYDGl5uV8";
+const PINATA_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIzZGI4MGUzZC1jZDA4LTQxYTgtODFmZS01MTllODRjZTYyODkiLCJlbWFpbCI6ImV2b3Rpbmd2b3RleEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkEXIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiMjAzMWYzZjVhZTYzYTU2MTYyMTQiLCJzY29wZWRLZXlTZWNyZXQiOiI3N2Y5NWRiYWQzNGEzNDhmZDk3YmFhYjYzOTEyZmQwMzZmZGUyZTQyMGEzMWM5ZTRlODExZWE3ODczMGY3NTEwIiwiZXhwIjoxNzc3OTE3NDU3fQ.fMhqeXrMaQB-T-O7-_i5ILMXcM79ncck1PrYDGl5uV8";
 
 // Remove redundant RPC configuration - keep only ARCHIVE_NODES
 const ARCHIVE_NODES = {
@@ -56,6 +56,7 @@ export const VotingProvider = ({ children }) => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [walletLinked, setWalletLinked] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState(""); // Track current session ID
 
   // Listen for account changes in MetaMask
   useEffect(() => {
@@ -497,6 +498,29 @@ const getVotingPeriod = async () => {
     }
   };
 
+  // Add this to your VotingContext provider's functions
+
+  const getSessionData = async (sessionId) => {
+    try {
+      const contract = await connectSmartContract();
+      if (!contract) throw new Error("Contract not initialized");
+
+      const data = await contract.getSessionData(sessionId);
+      return {
+        year: data.year,
+        candidateNames: data.candidateNames,
+        voteCounts: data.voteCounts,
+        winnerName: data.winnerName,
+        winnerAddress: data.winnerAddress,
+        winnerVoteCount: data.winnerVoteCount
+      };
+    } catch (error) {
+      console.error("Error fetching session data:", error);
+      throw error;
+    }
+  };
+
+  // Add getSessionData to the context value
   return (
     <VotingContext.Provider
       value={{
@@ -521,7 +545,9 @@ const getVotingPeriod = async () => {
         isLoading,    
         hasVoted, 
         setHasVoted,
-        walletLinked
+        walletLinked,
+        getSessionData,
+        currentSessionId
       }}
     >
       {children}
