@@ -1,6 +1,6 @@
 import { Card } from "@/components/Card/Card"; 
 import AdminSidebar from '@/components/NavBar/AdminNavBar';
-import React, { useState, useContext, useEffect} from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { AddProductDialog } from "@/components/AddProductDialog"; 
 import { VotingContext } from "../../context/Voter"; 
 import { useRouter } from "next/router";
@@ -10,7 +10,7 @@ const Candidates = () => {
     const [candidates, setCandidates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const { getAllCandidates } = useContext(VotingContext);  
+    const { getCurrentSessionCandidates, getCandidateDetails } = useContext(VotingContext);  
     const router = useRouter();
 
     useEffect(() => {
@@ -18,17 +18,49 @@ const Candidates = () => {
             try {
                 setLoading(true);
                 setError(null);
-                const data = await getAllCandidates();
-                if (data) {
-                    const formattedCandidates = data.map(candidate => ({
-                        id: candidate.candidateId,
-                        name: candidate.name,
-                        desc: candidate.party, 
-                        imageUrl: `https://gateway.pinata.cloud/ipfs/${candidate.ipfs}`, 
-                        address: candidate._address
-                    }));
-                    setCandidates(formattedCandidates);
+                
+                console.log("Starting candidate fetch...");
+                
+                // Step 1: Get candidate addresses
+                const candidateAddresses = await getCurrentSessionCandidates();
+                console.log("Raw candidate addresses:", candidateAddresses);
+                
+                if (!candidateAddresses || candidateAddresses.length === 0) {
+                    console.log("No candidates found or empty array returned");
+                    setCandidates([]);
+                    setLoading(false);
+                    return;
                 }
+                
+                // Step 2: Fetch details for each candidate
+                const candidatesWithDetails = [];
+                
+                for (let i = 0; i < candidateAddresses.length; i++) {
+                    const address = candidateAddresses[i];
+                    console.log(`Fetching details for candidate ${i+1}/${candidateAddresses.length}:`, address);
+                    
+                    const candidateDetails = await getCandidateDetails(address);
+                    console.log(`Candidate ${i+1} details:`, candidateDetails);
+                    
+                    // Only add non-archived candidates
+                    if (candidateDetails && !candidateDetails.isArchived) {
+                        candidatesWithDetails.push({
+                            id: candidateDetails.candidateId,
+                            name: candidateDetails.name || "Unnamed Candidate",
+                            desc: candidateDetails.party || "No Party",
+                            imageUrl: candidateDetails.imageUrl,
+                            address: address,
+                            age: candidateDetails.age || "N/A",
+                            voteCount: candidateDetails.voteCount || "0"
+                        });
+                    } else {
+                        console.log(`Skipping candidate ${address} - archived or no details`);
+                    }
+                }
+                
+                console.log("Final processed candidates:", candidatesWithDetails);
+                setCandidates(candidatesWithDetails);
+                
             } catch (error) {
                 console.error("Error fetching candidates:", error);
                 setError(error.message || "Failed to load candidates");
@@ -36,6 +68,7 @@ const Candidates = () => {
                 setLoading(false);
             }
         };
+        
         fetchCandidates();
     }, []);
 
@@ -99,6 +132,13 @@ const Candidates = () => {
                         <AddProductDialog />
                     </div>
             
+                    {candidates.length === 0 && !loading && (
+                        <div className="text-center p-10">
+                            <h3 className="text-xl font-medium text-gray-600">No candidates found</h3>
+                            <p className="mt-2 text-gray-500">Create a candidate or check if a voting session is active.</p>
+                        </div>
+                    )}
+                    
                     <div
                         className={`grid gap-6 transition-all duration-300 ${
                             isCollapsed ? "grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" : "grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3"
@@ -106,10 +146,12 @@ const Candidates = () => {
                     >
                         {candidates.map((candidate, index) => (
                             <Card
-                                key={`${candidate.id}-${index}`} 
+                                key={`${candidate.id}-${index}`}
                                 name={candidate.name}
                                 desc={candidate.desc}
                                 imageAdd={candidate.imageUrl}
+                                age={candidate.age}
+                                voteCount={candidate.voteCount}
                                 onClick={() => handleSeeMore(candidate)}
                             />
                         ))}

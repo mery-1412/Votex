@@ -5,7 +5,7 @@ import { useState, useContext, useEffect } from "react";
 import { VotingContext } from "../context/Voter"; 
 import { AuthContext } from "../pages/context/AuthContext";
 import { Popup } from "./Popup";
-
+ 
 export function AddProductDialog() {
   const [openModal, setOpenModal] = useState(false);
   const { createCandidate, uploadToPinata, currentAccount, message, errMessage, setMessage, setErrMessage } = useContext(VotingContext);
@@ -111,7 +111,6 @@ export function AddProductDialog() {
 
   return (
     <>
-      <Popup message={message} isOpen={success} action={"Confirm"} onClose={() => setSuccess(false)} />
 
       <button 
         className="gradient-border-button-black" 

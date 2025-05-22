@@ -125,7 +125,7 @@ const Dashboard = () => {
       
       if (user && user.id && currentAccount) {
         await checkWalletStatus();
-      } else if (!user || !user._id) {
+      } else if (!user || !user.id) {
         setWalletError("You must be logged in to add candidates");
       }
       
@@ -158,7 +158,8 @@ const Dashboard = () => {
 
   const handleLinkWallet = async () => {
     try {
-      if (!user || !user._id) {
+      if (!user || !user.id) {
+        console.error("USERRRRRRRR", user , user.id, user.role);
         setWalletError("Please log in as an admin");
         return;
       }
