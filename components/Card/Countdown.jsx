@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import { VotingContext } from "@/context/Voter";
 import { ethers } from "ethers";
 
@@ -30,28 +30,15 @@ const Countdown = ({ checkWalletVerification }) => {
   const [startTime, setStartTime] = useState(null);
   const [endTime, setEndTime] = useState(null);
 
-  // Add this state
+  // Session management states
   const [endingSession, setEndingSession] = useState(false);
+  const [lastCheckTime, setLastCheckTime] = useState(0);
   
   // Get context
   const { getVotingPeriod, connectSmartContract } = useContext(VotingContext);
 
-  // Check voting period on load and refresh
-  useEffect(() => {
-    checkVotingPeriod();
-    checkContractState();
-    
-    // Refresh every minute
-    const interval = setInterval(() => {
-      checkVotingPeriod();
-      checkContractState();
-    }, 60000);
-    
-    return () => clearInterval(interval);
-  }, []);
-
-  // New function to check contract state for debugging
-  const checkContractState = async () => {
+  // Memoized checkContractState function
+  const checkContractState = useCallback(async () => {
     try {
       const contract = await connectSmartContract();
       if (!contract) return;
@@ -77,9 +64,8 @@ const Countdown = ({ checkWalletVerification }) => {
         activeCandidatesCount = candidates.length;
       } catch (err) {
         console.log("Could not get active candidates:", err);
-        // Try alternative method if getActiveCandidates doesn't exist
         try {
-          const candidatesArray = await contract.activeCandiates(); // Note: your contract has a typo "activeCandiates"
+          const candidatesArray = await contract.activeCandiates();
           activeCandidatesCount = candidatesArray.length;
         } catch (err2) {
           console.log("Could not get activeCandiates array:", err2);
@@ -107,37 +93,22 @@ const Countdown = ({ checkWalletVerification }) => {
     } catch (error) {
       console.error("Error checking contract state:", error);
     }
-  };
+  }, [connectSmartContract]);
 
-  // Update countdown timer
-  useEffect(() => {
-    if (!votingPeriodActive || timeRemaining <= 0) return;
-    
-    const interval = setInterval(() => {
-      const now = Date.now();
-      const end = endTime * 1000;
-      const remaining = end - now;
-      
-      if (remaining <= 0) {
-        clearInterval(interval);
-        setTimeRemaining(0);
-      } else {
-        setTimeRemaining(remaining);
-        
-        // Update time units
-        const totalSeconds = Math.floor(remaining / 1000);
-        setDays(Math.floor(totalSeconds / (3600 * 24)));
-        setHours(Math.floor((totalSeconds % (3600 * 24)) / 3600));
-        setMinutes(Math.floor((totalSeconds % 3600) / 60));
-        setSeconds(totalSeconds % 60);
-      }
-    }, 1000);
-    
-    return () => clearInterval(interval);
-  }, [votingPeriodActive, endTime, endingSession]);
+  // Debounced checkVotingPeriod function
+  const checkVotingPeriod = useCallback(async () => {
+    const now = Date.now();
+    if (now - lastCheckTime < 30000) { // 30 second cooldown
+      console.log("Skipping check - too recent");
+      return;
+    }
+    setLastCheckTime(now);
 
-  // Main function to check if voting period is active
-  const checkVotingPeriod = async () => {
+    if (endingSession) {
+      console.log("Already ending session - skipping check");
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
@@ -147,7 +118,6 @@ const Countdown = ({ checkWalletVerification }) => {
         return;
       }
 
-      // Check if voting is active according to contract
       const isVotingActive = await contract.isVotingActive();
       console.log("Contract says voting is active:", isVotingActive);
       
@@ -158,7 +128,6 @@ const Countdown = ({ checkWalletVerification }) => {
         return;
       }
 
-      // Get current session data
       const currentSessionId = await contract.currentSessionId();
       console.log("Current session ID:", currentSessionId.toString());
       
@@ -169,7 +138,6 @@ const Countdown = ({ checkWalletVerification }) => {
         return;
       }
 
-      // Get session details
       const session = await contract.getSession(currentSessionId);
       console.log("Session data:", session);
       
@@ -182,56 +150,41 @@ const Countdown = ({ checkWalletVerification }) => {
       console.log("Session active:", sessionActive);
       
       const now = Math.floor(Date.now() / 1000);
-      console.log(`Current time: ${now}, Start: ${start}, End: ${end}`);
-      console.log(`Current: ${new Date(now * 1000).toLocaleString()}`);
-      console.log(`Start: ${new Date(start * 1000).toLocaleString()}`);
-      console.log(`End: ${new Date(end * 1000).toLocaleString()}`);
       
-      // Even if actual voting hasn't started, if contract says voting is active,
-      // we'll show the UI but with appropriate messaging
       setVotingPeriodActive(isVotingActive);
       setStartTime(start);
       setEndTime(end);
       
-      // Update time remaining based on where we are in the timeline
       if (now < start) {
-        // Voting scheduled but not started yet
         const remaining = start * 1000 - Date.now();
         setTimeRemaining(remaining > 0 ? remaining : 0);
       } else if (now <= end) {
-        // Active voting period
         const remaining = end * 1000 - Date.now();
         setTimeRemaining(remaining > 0 ? remaining : 0);
       } else {
-        // Voting period has ended
         setTimeRemaining(0);
         
-        // Check if voting period has ended but contract state hasn't been updated
         if (isVotingActive && now > end && !endingSession) {
           console.log("Voting period has ended but contract still shows active");
           
           try {
-            setEndingSession(true);  // Set flag
+            setEndingSession(true);
             console.log("Calling checkSessionStatus() to end session...");
             
-            // This will update the contract state to reflect the session has ended
-            await contract.checkSessionStatus();
+            const tx = await contract.checkSessionStatus();
+            console.log("Transaction sent:", tx.hash);
+            
+            await tx.wait();
             console.log("Session status updated");
             
-            // Wait a bit before checking again to allow blockchain to update
             await new Promise(resolve => setTimeout(resolve, 5000));
             
-            // Re-check after status update
             await checkVotingPeriod();
             await checkContractState();
           } catch (err) {
             console.error("Error updating session status:", err);
           } finally {
-            // Delay resetting the flag to prevent rapid re-attempts
-            setTimeout(() => {
-              setEndingSession(false);
-              console.log("Reset endingSession flag");
-            }, 30000); // 30 seconds cooldown
+            setEndingSession(false);
           }
         }
       }
@@ -240,7 +193,6 @@ const Countdown = ({ checkWalletVerification }) => {
       console.error("Error checking voting period:", error);
       setError("Failed to check voting period status");
       
-      // Fallback: try the original method
       try {
         const periodData = await getVotingPeriod();
         console.log("Fallback voting period data:", periodData);
@@ -266,51 +218,85 @@ const Countdown = ({ checkWalletVerification }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [connectSmartContract, endingSession, getVotingPeriod, lastCheckTime, checkContractState]);
 
-  // Add a scheduled check in the useEffect that checks if we need to call checkSessionStatus
+  // Update countdown timer
   useEffect(() => {
-    // Only run this effect when voting is active and we have an end time
-    if (!votingPeriodActive || !endTime) return;
+    if (!votingPeriodActive || timeRemaining <= 0) return;
+    
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const end = endTime * 1000;
+      const remaining = end - now;
+      
+      if (remaining <= 0) {
+        clearInterval(interval);
+        setTimeRemaining(0);
+      } else {
+        setTimeRemaining(remaining);
+        
+        const totalSeconds = Math.floor(remaining / 1000);
+        setDays(Math.floor(totalSeconds / (3600 * 24)));
+        setHours(Math.floor((totalSeconds % (3600 * 24)) / 3600));
+        setMinutes(Math.floor((totalSeconds % 3600) / 60));
+        setSeconds(totalSeconds % 60);
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [votingPeriodActive, endTime, timeRemaining]);
+
+  // Check voting period on load and setup interval
+  useEffect(() => {
+    checkVotingPeriod();
+    checkContractState();
+    
+    const interval = setInterval(() => {
+      checkVotingPeriod();
+      checkContractState();
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  }, [checkVotingPeriod, checkContractState]);
+
+  // Setup timeout for session end check
+  useEffect(() => {
+    if (!votingPeriodActive || !endTime || endingSession) return;
     
     const now = Math.floor(Date.now() / 1000);
     
-    // If we're past the end time and voting is still active, schedule a single check
     if (now > endTime) {
-      // Check if the session needs updating, but only if we're not already doing it
-      if (!endingSession) {
+      const timer = setTimeout(() => {
         checkVotingPeriod();
-      }
+      }, 5000);
+      
+      return () => clearTimeout(timer);
     } else {
-      // If we're not past the end time yet, schedule a check for when we reach the end time
       const timeUntilEnd = (endTime - now) * 1000;
       const timeout = setTimeout(() => {
         checkVotingPeriod();
-      }, timeUntilEnd + 1000); // Add 1 second buffer
+      }, timeUntilEnd + 1000);
       
       return () => clearTimeout(timeout);
     }
-  }, [votingPeriodActive, endTime, endingSession]);
+  }, [votingPeriodActive, endTime, endingSession, checkVotingPeriod]);
 
-  // Pre-flight checks before submitting
+  // Run preflight checks before submitting
   const runPreflightChecks = async () => {
     const checks = [];
     
-    // Check if user is organizer
     if (!debugInfo.isOrganizer) {
       checks.push("❌ You are not the organizer of this contract");
     } else {
       checks.push("✅ You are the organizer");
     }
     
-    // Check if there are active candidates
     if (debugInfo.activeCandidatesCount === 0) {
       checks.push("❌ No active candidates found");
     } else {
       checks.push(`✅ ${debugInfo.activeCandidatesCount} active candidates found`);
     }
     
-    // Check if voting is already active
     if (debugInfo.isVotingActive) {
       checks.push("❌ A voting period is already active - cannot set a new one");
     } else {
@@ -320,7 +306,7 @@ const Countdown = ({ checkWalletVerification }) => {
     return checks;
   };
 
-  // Submit new voting period with enhanced debugging
+  // Submit new voting period
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -333,7 +319,6 @@ const Countdown = ({ checkWalletVerification }) => {
       return;
     }
 
-    // Run preflight checks
     const preflightChecks = await runPreflightChecks();
     const hasErrors = preflightChecks.some(check => check.includes("❌"));
     
@@ -354,10 +339,9 @@ const Countdown = ({ checkWalletVerification }) => {
       setTransactionPending(true);
 
       const now = Math.floor(currentTime / 1000);
-      const startTimestamp = now + 120; // 2 minutes from actual current time
+      const startTimestamp = now + 120;
       const endTimestamp = Math.floor(endTimeMs / 1000);
 
-      // Enhanced validation
       if (endTimestamp <= startTimestamp) {
         setError("End time must be after start time");
         return;
@@ -388,15 +372,11 @@ const Countdown = ({ checkWalletVerification }) => {
       const contract = await connectSmartContract();
       if (!contract) throw new Error("Failed to connect to contract");
 
-      // Try to estimate gas first to catch errors early
       try {
         const gasEstimate = await contract.estimateGas.setVotingPeriod(startTimestamp, endTimestamp);
         console.log("Gas estimate:", gasEstimate.toString());
       } catch (gasError) {
         console.error("Gas estimation failed:", gasError);
-        console.log("Full gas error:", gasError);
-        
-        // Try to decode the revert reason
         if (gasError.data) {
           try {
             const reason = ethers.utils.toUtf8String('0x' + gasError.data.slice(138));
@@ -406,14 +386,12 @@ const Countdown = ({ checkWalletVerification }) => {
             console.log("Could not decode revert reason");
           }
         }
-        
         throw new Error(`Transaction will fail: ${gasError.reason || gasError.message}`);
       }
 
-      // Try with different gas settings
       const tx = await contract.setVotingPeriod(startTimestamp, endTimestamp, {
-        gasLimit: 800000, // Increased gas limit
-        type: 2, // EIP-1559 transaction
+        gasLimit: 800000,
+        type: 2,
       });
 
       console.log("Transaction sent:", tx.hash);
@@ -458,8 +436,6 @@ const Countdown = ({ checkWalletVerification }) => {
     }
   };
 
-
-
   // Helper functions
   const getMinDateTime = () => {
     const now = new Date();
@@ -489,7 +465,6 @@ const Countdown = ({ checkWalletVerification }) => {
     
     return (
       <div className="flex flex-col items-center justify-center px-4 py-8">
-        {/* Header changes based on status */}
         {!votingStarted ? (
           <h2 className="text-2xl font-bold mb-2 text-center text-purple-600">Voting Scheduled</h2>
         ) : votingEnded ? (
@@ -497,8 +472,6 @@ const Countdown = ({ checkWalletVerification }) => {
         ) : (
           <h2 className="text-2xl font-bold mb-2 text-center text-purple-700">Voting in Progress</h2>
         )}
-        
-      
         
         <div className="flex flex-wrap justify-center gap-4 mb-6 w-full max-w-[700px]">
           <div className="bg-white shadow rounded-xl px-6 py-4 flex-1">
@@ -521,7 +494,6 @@ const Countdown = ({ checkWalletVerification }) => {
           </div>
         </div>
         
-        {/* Countdown label changes based on status */}
         {!votingStarted ? (
           <h3 className="text-xl font-semibold mb-4 text-center text-purple-600">Time Until Voting Begins</h3>
         ) : votingEnded ? (
@@ -530,7 +502,6 @@ const Countdown = ({ checkWalletVerification }) => {
           <h3 className="text-xl font-semibold mb-4 text-center text-purple-600">Time Remaining</h3>
         )}
         
-        {/* Countdown timer - colors change based on status */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full max-w-[700px]">
           {[
             { label: "Days", value: days },
@@ -552,14 +523,6 @@ const Countdown = ({ checkWalletVerification }) => {
           ))}
         </div>
         
-        {/* Add the End Session button - only visible to organizers when voting is active */}
-        {debugInfo.isOrganizer && (
-          <div className="mt-8 w-full max-w-[700px]">
-            
-          
-          </div>
-        )}
-        
         {error && (
           <div className="w-full max-w-[700px] mt-4 p-4 bg-red-100 text-red-700 rounded border border-red-300">
             <strong>Error:</strong>
@@ -578,11 +541,10 @@ const Countdown = ({ checkWalletVerification }) => {
         There is currently no active voting period. Set a new voting period to begin.
       </p>
       
-      {/* Debug Information Panel */}
-      <div className="w-full max-w-[600px] mb-4 p-4 bg-purple-600  border border-blue-200 rounded">
+      <div className="w-full max-w-[600px] mb-4 p-4 bg-purple-600 border border-blue-200 rounded">
         <h4 className="font-semibold mb-2 text-white">Session Status:</h4>
         <div className="text-sm text-white space-y-1">
-          <p> {debugInfo.isVotingActive ? "Session Actif" : "Session Not Actif"}</p>
+          <p>{debugInfo.isVotingActive ? "Session Active" : "Session Not Active"}</p>
         </div>
       </div>
       
