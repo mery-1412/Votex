@@ -9,7 +9,6 @@ import { AuthContext } from "../pages/context/AuthContext"; // Import Auth Conte
 const PINATA_API_KEY = "7aa86323c46359e68595";
 const PINATA_API_SECRET = "943c3d77c06632fdf5c1c7861167675be909d1d6886fc0e23492aaa507cd6f19";
 const PINATA_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIzZGI4MGUzZC1jZDA4LTQxYTgtODFmZS01MTllODRjZTYyODkiLCJlbWFpbCI6ImV2b3Rpbmd2b3RleEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkEXIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiMjAzMWYzZjVhZTYzYTU2MTYyMTQiLCJzY29wZWRLZXlTZWNyZXQiOiI3N2Y5NWRiYWQzNGEzNDhmZDk3YmFhYjYzOTEyZmQwMzZmZGUyZTQyMGEzMWM5ZTRlODExZWE3ODczMGY3NTEwIiwiZXhwIjoxNzc3OTE3NDU3fQ.fMhqeXrMaQB-T-O7-_i5ILMXcM79ncck1PrYDGl5uV8";
-
 // Remove redundant RPC configuration - keep only ARCHIVE_NODES
 const ARCHIVE_NODES = {
   SEPOLIA: "https://eth-sepolia.public.blastapi.io", // Blast API (archive node)
@@ -305,16 +304,66 @@ export const VotingProvider = ({ children }) => {
   };
   
 
-  //Get ALL Candidates
-  const getAllCandidates = async () => {
+  // Replace getCurrentSessionCandidates with this fixed version
+  const getCurrentSessionCandidates = async () => {
     try {
+      console.log("Starting to fetch candidates...");
       const contract = await connectSmartContract();
-      const candidates = await contract.getAllCandidates();
-      console.log(" All Candidates:", candidates);
-      setCandidates(candidates);
-      return candidates;
+      if (!contract) throw new Error("Smart contract connection failed");
+      
+      // First try to get active candidates
+      const activeAddresses = await contract.getActiveCandidates();
+      console.log("Active candidate addresses:", activeAddresses);
+      
+      if (activeAddresses && activeAddresses.length > 0) {
+        console.log(`Found ${activeAddresses.length} active candidates`);
+        return activeAddresses;
+      }
+      
+      // If no active candidates found, try getting from current session
+      console.log("No active candidates, trying current session...");
+      const addresses = await contract.getCurrentSessionCandidates();
+      console.log("Current session candidates:", addresses);
+      
+      if (addresses && addresses.length > 0) {
+        console.log(`Found ${addresses.length} candidates in current session`);
+        return addresses;
+      }
+      
+      // If still no candidates, check if there's a session and try to get candidates from there
+      const currentSessionId = await contract.currentSessionId();
+      if (currentSessionId.toString() !== "0") {
+        console.log("Current session ID:", currentSessionId.toString());
+        
+        // Get the session directly
+        const sessionData = await contract.getSession(currentSessionId);
+        console.log("Session data:", sessionData);
+        
+        // Check if there are candidates in the session
+        if (sessionData && sessionData[4] && sessionData[4].length > 0) {
+          const sessionCandidates = sessionData[4];
+          console.log("Found candidates in session data:", sessionCandidates);
+          
+          // Filter out archived candidates manually
+          const filteredCandidates = [];
+          for (let i = 0; i < sessionCandidates.length; i++) {
+            const candData = await contract.getCandidateData(sessionCandidates[i]);
+            // Check isArchived flag (index 9 in the return data)
+            if (!candData[9]) {
+              filteredCandidates.push(sessionCandidates[i]);
+            }
+          }
+          
+          console.log("After filtering archived candidates:", filteredCandidates);
+          return filteredCandidates;
+        }
+      }
+      
+      console.log("No candidates found in any source");
+      return [];
     } catch (error) {
-      console.error(" Error fetching all candidates:", error);
+      console.error("Error fetching session candidates:", error);
+      return [];
     }
   };
  
@@ -323,9 +372,10 @@ export const VotingProvider = ({ children }) => {
     try {
       const contract = await connectSmartContract();
       if (!contract) throw new Error("Smart contract connection failed!");
-  
+
       const data = await contract.getCandidateData(candidateAddress);
-  
+      console.log("Raw candidate data:", data);
+
       return {
         age: data[0],
         name: data[1],
@@ -334,6 +384,8 @@ export const VotingProvider = ({ children }) => {
         party: data[4],
         voteCount: data[5].toString(),
         address: data[7],
+        sessionId: data[8].toString(),
+        isArchived: data[9]  // Add the isArchived flag
       };
     } catch (error) {
       console.error("Error fetching candidate details:", error);
@@ -369,33 +421,62 @@ export const VotingProvider = ({ children }) => {
     }
   };
 
-// Replace the getVotingPeriod function completely
+// Replace the getVotingPeriod function with this improved version
 const getVotingPeriod = async () => {
   try {
     setIsLoading(true);
+
+    // Connect to the smart contract
+    const contract = await connectSmartContract();
+    if (!contract) throw new Error("Failed to connect to smart contract");
+
+    // Fetch the current session ID
+    const currentSessionId = await contract.currentSessionId();
+    if (currentSessionId.toNumber() === 0) {
+      console.log("No active session found");
+      return { start: 0, end: 0, isActive: false };
+    }
+
+    // Fetch the session details
+    const session = await contract.getSession(currentSessionId);
     
-    // Skip blockchain access completely - use fallback values
-    console.log("Using fallback voting period due to contract access issues");
-    
-    // Create a one-month voting period centered around current time
-    const now = Math.floor(Date.now() / 1000);
-    const twoWeeks = 14 * 24 * 60 * 60;
-    
-    const fallbackPeriod = { 
-      start: now - twoWeeks, // Started two weeks ago
-      end: now + twoWeeks    // Ends two weeks from now
+    // Get contract's voting state
+    const isActiveInContract = await contract.isVotingActive();
+
+    // Extract start and end times
+    const start = session.startPeriod.toNumber();
+    const end = session.endPeriod.toNumber();
+
+    // Get current blockchain time (may be slightly different from local time)
+    const latestBlock = await contract.provider.getBlock("latest");
+    const blockchainTime = latestBlock.timestamp;
+
+    console.log("Fetched voting period from contract:", {
+      sessionId: currentSessionId.toString(),
+      start: start,
+      startFormatted: new Date(start * 1000).toLocaleString(),
+      end: end,
+      endFormatted: new Date(end * 1000).toLocaleString(),
+      blockchainTime: blockchainTime,
+      blockchainTimeFormatted: new Date(blockchainTime * 1000).toLocaleString(),
+      localTime: Math.floor(Date.now() / 1000),
+      localTimeFormatted: new Date().toLocaleString(),
+      isActiveInContract: isActiveInContract
+    });
+
+    // Update the state with the fetched voting period
+    const votingPeriod = { 
+      start, 
+      end, 
+      isActive: isActiveInContract,
+      currentBlockchainTime: blockchainTime
     };
     
-    console.log("Using fallback voting period:", {
-      start: new Date(fallbackPeriod.start * 1000).toISOString(),
-      end: new Date(fallbackPeriod.end * 1000).toISOString()
-    });
-    
-    setVotingPeriodState(fallbackPeriod);
-    return fallbackPeriod;
+    setVotingPeriodState(votingPeriod);
+    return votingPeriod;
   } catch (error) {
-    console.error("Error getting voting period:", error);
-    return { start: 0, end: 0 };
+    console.error("Error getting voting period from contract:", error);
+    return { start: 0, end: 0, isActive: false };
   } finally {
     setIsLoading(false);
   }
@@ -430,29 +511,47 @@ const getVotingPeriod = async () => {
   const createCandidate = async (age, name, imageUrl, party, ipfsHash) => {
     try {
       console.log("Creating candidate...");
-    
+  
       const contract = await connectSmartContract();
       if (!contract) throw new Error("Smart contract connection failed!");
-      
+  
       // Log addresses for debugging
       const organizer = await contract.votingOrganizer();
       console.log("Organizer Address:", organizer);
       console.log("Your Wallet Address:", currentAccount);
-      
+  
       // Make sure current user is the organizer
       if (organizer.toLowerCase() !== currentAccount.toLowerCase()) {
         throw new Error("Only the voting organizer can create candidates");
       }
+  
+      // Check if we are in the voting period
+      const votingPeriod = await getVotingPeriod();
+      console.log("CURRENT VOTING PERIOD:", votingPeriod);
       
+      // Get current timestamp in seconds (same method used in Countdown.jsx)
+      const now = Math.floor(Date.now() / 1000);
+      console.log("Current time:", now);
+      console.log("Current UTC time:", new Date(now * 1000).toUTCString());
+      
+      // Check if current time is within voting period using the same logic as Countdown
+      if (votingPeriod?.start && votingPeriod?.end) {
+        // If we're inside the voting period, don't allow creating candidates
+        if (now >= votingPeriod.start && now <= votingPeriod.end) {
+          setErrMessage("Cannot create candidates during active voting period");
+          return false;
+        }
+      }
+  
       // Generate a unique address for the candidate
       const candidateAddress = ethers.utils.getAddress(
         ethers.utils.hexlify(
           ethers.utils.randomBytes(20)
         )
       );
-      
+  
       console.log("Using candidate address:", candidateAddress);
-      
+  
       // Use specific transaction parameters
       const tx = await contract.setCandidate(
         candidateAddress, // Use a generated address instead of currentAccount
@@ -466,9 +565,9 @@ const getVotingPeriod = async () => {
           gasPrice: ethers.utils.parseUnits('50', 'gwei') // Set specific gas price
         }
       );
-      
+  
       console.log("Transaction sent:", tx.hash);
-
+  
       // Wait for transaction with more detailed error handling
       try {
         const receipt = await tx.wait(2); // Wait for 2 confirmations
@@ -477,10 +576,10 @@ const getVotingPeriod = async () => {
         console.error("Transaction failed:", waitError);
         throw new Error("Transaction was sent but failed to be confirmed");
       }
-    
+  
       setMessage("Candidate created successfully!");
       console.log("Candidate created:", { age, name, imageUrl, party });
-    
+  
       return true;
     } catch (error) {
       // Better error parsing
@@ -498,24 +597,83 @@ const getVotingPeriod = async () => {
     }
   };
 
-  // Add this to your VotingContext provider's functions
+  // Add this function to your VotingContext provider
 
   const getSessionData = async (sessionId) => {
     try {
       const contract = await connectSmartContract();
-      if (!contract) throw new Error("Contract not initialized");
+      if (!contract) {
+        throw new Error("Contract not initialized");
+      }
 
-      const data = await contract.getSessionData(sessionId);
+      // Get session data
+      const session = await contract.getSession(sessionId);
+      if (!session) {
+        throw new Error("Session not found");
+      }
+
+      // Get candidates for this session
+      const candidates = await contract.getCurrentSessionCandidates();
+      const candidatesData = await Promise.all(
+        candidates.map(async (address) => {
+          try {
+            const data = await contract.getCandidateData(address);
+            // Convert BigNumber to string immediately
+            return {
+              name: data.name || "Unknown",
+              voteCount: data.voteCount ? data.voteCount.toString() : "0"
+            };
+          } catch (error) {
+            console.error(`Error fetching candidate data for ${address}:`, error);
+            return null;
+          }
+        })
+      );
+
+      // Filter out any failed candidate data
+      const validCandidatesData = candidatesData.filter(Boolean);
+
+      // Get winner info with proper error handling
+      let winnerData = {
+        name: "No winner yet",
+        address: "0x0000000000000000000000000000000000000000",
+        voteCount: "0"
+      };
+
+      try {
+        const winner = await contract.getCurrentSessionWinner();
+        if (winner && winner !== "0x0000000000000000000000000000000000000000") {
+          const winnerDetails = await contract.getCandidateData(winner);
+          if (winnerDetails) {
+            winnerData = {
+              name: winnerDetails.name || "Unknown",
+              address: winner,
+              voteCount: winnerDetails.voteCount ? winnerDetails.voteCount.toString() : "0"
+            };
+          }
+        }
+      } catch (error) {
+        console.log("No winner data available yet:", error);
+      }
+
+      // Convert all BigNumber values to strings
+      const startTime = session.startPeriod ? session.startPeriod.toString() : "0";
+      const endTime = session.endPeriod ? session.endPeriod.toString() : "0";
+
       return {
-        year: data.year,
-        candidateNames: data.candidateNames,
-        voteCounts: data.voteCounts,
-        winnerName: data.winnerName,
-        winnerAddress: data.winnerAddress,
-        winnerVoteCount: data.winnerVoteCount
+        sessionId: sessionId.toString(),
+        year: new Date().getFullYear().toString(),
+        candidateNames: validCandidatesData.map(c => c.name),
+        voteCounts: validCandidatesData.map(c => c.voteCount),
+        winnerName: winnerData.name,
+        winnerAddress: winnerData.address,
+        winnerVoteCount: winnerData.voteCount,
+        startTime: startTime,
+        endTime: endTime,
+        isActive: !!session.isActive
       };
     } catch (error) {
-      console.error("Error fetching session data:", error);
+      console.error("Error getting session data:", error);
       throw error;
     }
   };
@@ -528,8 +686,7 @@ const getVotingPeriod = async () => {
         connectSmartContract,
         uploadToPinata,
         currentAccount,
-        getAllCandidates,
-        createCandidate,
+        getCurrentSessionCandidates,
         getCandidateDetails,
         vote,
         checkIfUserVoted,
@@ -547,7 +704,8 @@ const getVotingPeriod = async () => {
         setHasVoted,
         walletLinked,
         getSessionData,
-        currentSessionId
+        currentSessionId,
+        createCandidate
       }}
     >
       {children}

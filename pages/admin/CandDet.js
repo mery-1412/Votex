@@ -23,7 +23,7 @@ const CandDet = () => {
   }, [address]);
 
   const fetchCandidateData = async () => {
-    try {
+    try { 
       setLoading(true);
       setError(null);
       

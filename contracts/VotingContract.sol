@@ -8,7 +8,7 @@ contract Create {
     using Counters for Counters.Counter;
 
     Counters.Counter private _candidateId;
-    Counters.Counter private sessionCounter; // Renamed from _sessionId to sessionCounter
+    Counters.Counter private sessionCounter;
     address public deployer;
     address public organizer;
     address public votingOrganizer;
@@ -21,6 +21,7 @@ contract Create {
         uint256 totalVotes;
         address[] sessionCandidates;
         mapping(uint256 => uint256) votesPerMinute; // minute timestamp => vote count
+        bool isActive; // Flag to track if session is active
     }
 
     struct Candidate {
@@ -33,6 +34,7 @@ contract Create {
         address _address;
         string ipfs;
         uint256 sessionId;
+        bool isArchived; // Flag to track archived candidates
     }
 
     event CandidateCreate(
@@ -45,6 +47,20 @@ contract Create {
         address _address,
         string ipfs,
         uint256 sessionId
+    );
+
+    // Event for session creation
+    event SessionCreated(
+        uint256 indexed sessionId,
+        uint256 startPeriod,
+        uint256 endPeriod
+    );
+
+    // Event for session end - candidates archived
+    event SessionEnded(
+        uint256 indexed sessionId,
+        uint256 endPeriod,
+        uint256 totalVotes
     );
 
     // Event for vote tracking
@@ -73,9 +89,11 @@ contract Create {
 
     mapping(uint256 => Session) private sessions;
     uint256 public currentSessionId;
+    bool public isVotingActive; // Flag to track if voting is currently active
 
     address[] public candidateAddress;
     mapping(address => Candidate) public candidates;
+    address[] public activeCandiates; // Track non-archived candidates
 
     address[] public votedVoters;
     mapping(address => bool) public hasVoted;
@@ -113,7 +131,7 @@ contract Create {
         string memory _ipfs
     ) public onlyOrganizer {
         require(candidates[_address].candidateId == 0, "Candidate already exists!");
-        require(currentSessionId > 0, "No active session available");
+        require(!isVotingActive, "Cannot add candidates during active voting period");
 
         _candidateId.increment();
         uint256 idNumber = _candidateId.current();
@@ -127,37 +145,92 @@ contract Create {
             voteCount: 0,
             _address: _address,
             ipfs: _ipfs,
-            sessionId: currentSessionId
+            sessionId: 0, // Will be set when voting period starts
+            isArchived: false
         });
 
         candidateAddress.push(_address);
-        sessions[currentSessionId].sessionCandidates.push(_address);
+        activeCandiates.push(_address);
 
-        emit CandidateCreate(idNumber, _age, _name, _image, _party, 0, _address, _ipfs, currentSessionId);
+        emit CandidateCreate(idNumber, _age, _name, _image, _party, 0, _address, _ipfs, 0);
     }
 
     // Function to set the voting period and create a new session
     function setVotingPeriod(uint256 _start, uint256 _end) public onlyOrganizer {
         require(_start < _end, "Start time must be before end time!");
+        require(!isVotingActive, "A voting period is already active");
+        require(block.timestamp <= _start, "Start time must be in the future");
+        require(activeCandiates.length > 0, "No active candidates to include in voting session");
 
+    
         sessionCounter.increment(); // Increment the session counter
         uint256 newSessionId = sessionCounter.current(); // Get the current session ID
         currentSessionId = newSessionId;
+        isVotingActive = true;
 
         Session storage newSession = sessions[newSessionId];
         newSession.sessionId = newSessionId;
         newSession.startPeriod = _start;
         newSession.endPeriod = _end;
         newSession.totalVotes = 0;
+        newSession.isActive = true;
+
+        // Add all active candidates to this session
+        for (uint256 i = 0; i < activeCandiates.length; i++) {
+            address candidateAddr = activeCandiates[i];
+            newSession.sessionCandidates.push(candidateAddr);
+            candidates[candidateAddr].sessionId = newSessionId; // Assign candidates to this session
+        }
+
+        emit SessionCreated(newSessionId, _start, _end);
+    }
+
+    // Private function to archive candidates from previous session
+    function _archivePreviousSessionCandidates() private {
+        uint256 previousSessionId = currentSessionId;
+        address[] memory previousCandidates = sessions[previousSessionId].sessionCandidates;
+        
+        // Mark all candidates from previous session as archived
+        for (uint256 i = 0; i < previousCandidates.length; i++) {
+            address candidateAddr = previousCandidates[i];
+            candidates[candidateAddr].isArchived = true;
+        }
+        
+        // Clear the active candidates list
+        delete activeCandiates;
+        
+        sessions[previousSessionId].isActive = false;
+        
+        emit SessionEnded(previousSessionId, sessions[previousSessionId].endPeriod, sessions[previousSessionId].totalVotes);
+    }
+
+    // Function to check if session has ended and archive candidates
+    function checkSessionStatus() public returns (bool) {
+        if (!isVotingActive || currentSessionId == 0) {
+            return false;
+        }
+        
+        if (block.timestamp > sessions[currentSessionId].endPeriod) {
+            _archivePreviousSessionCandidates();
+            isVotingActive = false;
+            return true;
+        }
+        
+        return false;
     }
 
     // Standard vote function (updated for sessions)
     function vote(address _candidateIdAddress) external {
+        // First check if we need to end the session
+        checkSessionStatus();
+        
+        require(isVotingActive, "No active voting period");
         require(currentSessionId > 0, "No active session");
         require(block.timestamp >= sessions[currentSessionId].startPeriod, "Voting has not started yet!");
         require(block.timestamp <= sessions[currentSessionId].endPeriod, "Voting period has ended!");
         require(!hasVoted[msg.sender], "You have already voted!");
         require(candidates[_candidateIdAddress].sessionId == currentSessionId, "Candidate not in current session");
+        require(!candidates[_candidateIdAddress].isArchived, "Candidate is archived");
 
         hasVoted[msg.sender] = true;
         votedVoters.push(msg.sender);
@@ -174,6 +247,10 @@ contract Create {
 
     // Function to cast a white vote
     function whiteVote() external {
+        // First check if we need to end the session
+        checkSessionStatus();
+        
+        require(isVotingActive, "No active voting period");
         require(currentSessionId > 0, "No active session");
         require(block.timestamp >= sessions[currentSessionId].startPeriod, "Voting has not started yet!");
         require(block.timestamp <= sessions[currentSessionId].endPeriod, "Voting period has ended!");
@@ -189,6 +266,10 @@ contract Create {
 
     // Function to cast multiple votes
     function multipleVote(address[] memory _candidateAddresses) external {
+        // First check if we need to end the session
+        checkSessionStatus();
+        
+        require(isVotingActive, "No active voting period");
         require(currentSessionId > 0, "No active session");
         require(block.timestamp >= sessions[currentSessionId].startPeriod, "Voting has not started yet!");
         require(block.timestamp <= sessions[currentSessionId].endPeriod, "Voting period has ended!");
@@ -201,6 +282,7 @@ contract Create {
         for (uint256 i = 0; i < _candidateAddresses.length; i++) {
             address candidateAddress = _candidateAddresses[i];
             require(candidates[candidateAddress].sessionId == currentSessionId, "Candidate not in current session");
+            require(!candidates[candidateAddress].isArchived, "Candidate is archived");
 
             candidates[candidateAddress].voteCount += 1;
         }
@@ -212,12 +294,17 @@ contract Create {
 
     // Enhanced vote function with ID verification (updated for sessions)
     function voteWithId(address _candidateIdAddress, bytes32 _userIdHash) external {
+        // First check if we need to end the session
+        checkSessionStatus();
+        
+        require(isVotingActive, "No active voting period");
         require(currentSessionId > 0, "No active session");
         require(block.timestamp >= sessions[currentSessionId].startPeriod, "Voting has not started yet!");
         require(block.timestamp <= sessions[currentSessionId].endPeriod, "Voting period has ended!");
         require(!hasVoted[msg.sender], "This wallet has already voted!");
         require(!idHasVoted[_userIdHash], "This ID has already been used to vote!");
         require(candidates[_candidateIdAddress].sessionId == currentSessionId, "Candidate not in current session");
+        require(!candidates[_candidateIdAddress].isArchived, "Candidate is archived");
 
         // Mark both wallet and ID as having voted
         hasVoted[msg.sender] = true;
@@ -251,13 +338,47 @@ contract Create {
         return votedVoters;
     }
 
-    // Get current session candidates
+    // Get current session candidates that aren't archived
     function getCurrentSessionCandidates() public view returns (address[] memory) {
-        if (currentSessionId == 0) {
+        if (currentSessionId == 0 || !isVotingActive) {
             address[] memory empty;
             return empty;
         }
-        return sessions[currentSessionId].sessionCandidates;
+        
+        // First count how many non-archived candidates we have
+        address[] memory allCandidates = sessions[currentSessionId].sessionCandidates;
+        uint256 nonArchivedCount = 0;
+        
+        for (uint256 i = 0; i < allCandidates.length; i++) {
+            if (!candidates[allCandidates[i]].isArchived) {
+                nonArchivedCount++;
+            }
+        }
+        
+        // Create array of the right size
+        address[] memory nonArchivedCandidates = new address[](nonArchivedCount);
+        
+        // Fill array with non-archived candidates
+        uint256 j = 0;
+        for (uint256 i = 0; i < allCandidates.length; i++) {
+            if (!candidates[allCandidates[i]].isArchived) {
+                nonArchivedCandidates[j] = allCandidates[i];
+                j++;
+            }
+        }
+        
+        return nonArchivedCandidates;
+    }
+
+    // This function will always return candidates for a session regardless of voting status
+    function getSessionCandidates(uint256 sessionId) public view returns (address[] memory) {
+        require(sessionId > 0 && sessionId <= sessionCounter.current(), "Invalid session ID");
+        return sessions[sessionId].sessionCandidates;
+    }
+
+    // Get active candidates that are not archived
+    function getActiveCandidates() public view returns (address[] memory) {
+        return activeCandiates;
     }
 
     function getCandidateLength() public view returns (uint256) {
@@ -276,11 +397,12 @@ contract Create {
             uint256,
             string memory,
             address,
-            uint256
+            uint256,
+            bool
         )
     {
         Candidate memory c = candidates[_address];
-        return (c.age, c.name, c.candidateId, c.image, c.party, c.voteCount, c.ipfs, c._address, c.sessionId);
+        return (c.age, c.name, c.candidateId, c.image, c.party, c.voteCount, c.ipfs, c._address, c.sessionId, c.isArchived);
     }
 
     function getAllCandidates() public view returns (Candidate[] memory) {
@@ -292,6 +414,16 @@ contract Create {
         }
 
         return allCandidates;
+    }
+
+    // Get voting period info
+    function getVotingPeriod() public view returns (uint256 start, uint256 end, bool active) {
+        if (currentSessionId == 0) {
+            return (0, 0, false);
+        }
+        
+        Session storage currentSession = sessions[currentSessionId];
+        return (currentSession.startPeriod, currentSession.endPeriod, isVotingActive);
     }
 
     // Function for line chart - votes per minute in current session
@@ -424,5 +556,26 @@ contract Create {
         winnerVoteCount = winner.voteCount;
 
         return (year, candidateNames, voteCounts, winnerName, winnerAddress, winnerVoteCount);
+    }
+
+    function getSession(uint256 sessionId) public view returns (
+        uint256 sessionId_,
+        uint256 startPeriod,
+        uint256 endPeriod,
+        uint256 totalVotes,
+        address[] memory sessionCandidates,
+        bool isActive
+    ) {
+        require(sessionId > 0 && sessionId <= sessionCounter.current(), "Invalid session ID");
+
+        Session storage session = sessions[sessionId];
+        return (
+            session.sessionId,
+            session.startPeriod,
+            session.endPeriod,
+            session.totalVotes,
+            session.sessionCandidates,
+            session.isActive
+        );
     }
 }

@@ -1,17 +1,22 @@
 import React, { useContext, useState, useEffect } from 'react';
-import RequireAdmin from '../protectingRoutes/RequireAdmin';
-import { AuthContext } from '../context/AuthContext';
 import { VotingContext } from '@/context/Voter';
+import { AuthContext } from '../context/AuthContext';
 import AdminSidebar from '@/components/NavBar/AdminNavBar';
 import Line from '../../components/Charts/Line';
 import BarChart from '../../components/Charts/Bar';
 import PieChart from '@/components/Charts/Pie';
 import { useRouter } from 'next/router';
+import RequireAdmin from '../protectingRoutes/RequireAdmin';
 
 const Dashboard = () => {
   const router = useRouter();
   const { user, verifyWallet, linkWallet, logout } = useContext(AuthContext);
-  const { currentAccount, connectWallet, getAllCandidates, getCandidateDetails } = useContext(VotingContext);
+  const { 
+    currentAccount, 
+    connectWallet, 
+    getCurrentSessionCandidates, // Use this instead of getAllCandidates
+    getCandidateDetails 
+  } = useContext(VotingContext);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isWalletLinked, setIsWalletLinked] = useState(false);
   const [walletError, setWalletError] = useState("");
@@ -21,6 +26,10 @@ const Dashboard = () => {
     labels: [],
     votes: [],
     candidates: []
+  });
+  const [voteTimeline, setVoteTimeline] = useState({
+    labels: [],
+    data: []
   });
 
   // Chart data
@@ -128,22 +137,26 @@ const Dashboard = () => {
         hasWallet: !!currentAccount,
         walletAddress: currentAccount
       });
-      
+
+      // First check if user exists and is logged in
       if (!user || !user.id) {
-        setWalletError("Please log in first");
+        setWalletError("You must be logged in to add candidates");
         return;
       }
 
-      if (user.role.toLowerCase() !== "admin") {
+      // Then check admin role
+      if (!user.role || user.role.toLowerCase() !== "admin") {
         setWalletError("Account is not an admin");
         return;
       }
 
+      // Then check wallet connection
       if (!currentAccount) {
         setWalletError("Please connect your wallet");
         return;
       }
 
+      // Finally check wallet verification
       await checkWalletStatus();
     };
 
@@ -170,10 +183,11 @@ const Dashboard = () => {
 
   const handleLinkWallet = async () => {
     try {
-    
-   if (!user || !user.id) { 
-     console.log("user issss", user.id, user.role);
+
       
+      if (!user || !user.id) {
+        console.error("USERRRRRRRR", user , user.id, user.role);
+
         setWalletError("Please log in as an admin");
         return;
       }
@@ -262,42 +276,104 @@ const Dashboard = () => {
   };
 
   // Fetch candidates data for charts
-  useEffect(() => {
-    const fetchCandidatesData = async () => {
-      try {
-        const candidates = await getAllCandidates();
-        const detailedData = await Promise.all(
-          candidates.map(candidate => getCandidateDetails(candidate._address))
-        );
-
-        // Filter out any null values from failed fetches
-        const validData = detailedData.filter(data => data !== null);
-
-        // Prepare chart data
-        const labels = validData.map(c => c.name);
-        const votes = validData.map(c => parseInt(c.voteCount));
-        const parties = validData.map(c => c.party);
-
+  const fetchCandidatesData = async () => {
+    try {
+      // Use getCurrentSessionCandidates instead of getAllCandidates
+      const candidateAddresses = await getCurrentSessionCandidates();
+      
+      if (!candidateAddresses || candidateAddresses.length === 0) {
         setChartData({
-          labels,
-          votes,
-          parties
+          labels: [],
+          votes: [],
+          parties: []
         });
-
-      } catch (error) {
-        console.error("Error fetching candidates data:", error);
+        return;
       }
-    };
 
-    fetchCandidatesData();
-  }, []); // Run once on component mount
+      const detailedData = await Promise.all(
+        candidateAddresses.map(address => getCandidateDetails(address))
+      );
 
-  // Update the chart data objects
+      // Filter out any null values from failed fetches
+      const validData = detailedData.filter(data => data !== null);
+
+      // Prepare chart data
+      const labels = validData.map(c => c.name);
+      const votes = validData.map(c => parseInt(c.voteCount));
+      const parties = validData.map(c => c.party);
+
+      setChartData({
+        labels,
+        votes,
+        parties
+      });
+
+    } catch (error) {
+      console.error("Error fetching candidates data:", error);
+    }
+  };
+
+  // New function to fetch and process vote timeline data
+  const fetchVoteTimeline = async () => {
+    try {
+      const contract = await connectSmartContract();
+      if (!contract) return;
+
+      // Get current session
+      const currentSessionId = await contract.currentSessionId();
+      if (currentSessionId.toString() === "0") {
+        setVoteTimeline({ labels: [], data: [] });
+        return;
+      }
+
+      // Get votes per minute data from contract
+      const [timePoints, voteCounts] = await contract.getVotesPerMinute(currentSessionId);
+      
+      // Convert timestamps to hour format and aggregate votes by hour
+      const hourlyVotes = new Map(); // Use Map to aggregate votes by hour
+      
+      timePoints.forEach((timestamp, index) => {
+        const date = new Date(timestamp.toNumber() * 1000);
+        const hourKey = date.toLocaleString('en-US', {
+          hour: 'numeric',
+          hour12: true,
+          day: 'numeric',
+          month: 'short'
+        });
+        
+        const currentVotes = hourlyVotes.get(hourKey) || 0;
+        hourlyVotes.set(hourKey, currentVotes + voteCounts[index].toNumber());
+      });
+
+      // Convert Map to arrays for chart
+      const sortedHours = Array.from(hourlyVotes.keys()).sort((a, b) => {
+        return new Date(a) - new Date(b);
+      });
+
+      setVoteTimeline({
+        labels: sortedHours,
+        data: sortedHours.map(hour => hourlyVotes.get(hour))
+      });
+
+    } catch (error) {
+      console.error("Error fetching vote timeline:", error);
+    }
+  };
+
+  // Update useEffect to run when currentAccount changes
+  useEffect(() => {
+    if (currentAccount) {
+      fetchCandidatesData();
+      fetchVoteTimeline();
+    }
+  }, [currentAccount]);
+
+  // Update the chartData_line object
   const chartData_line = {
-    labels: chartData.labels,
+    labels: voteTimeline.labels,
     datasets: [{
-      label: 'Votes',
-      data: chartData.votes,
+      label: 'Total Votes',
+      data: voteTimeline.data,
       fill: false,
       borderColor: '#B342FF',
       tension: 0.4,
@@ -371,7 +447,52 @@ const Dashboard = () => {
               },
               title: {
                 display: true,
-                text: 'Votes per Candidate'
+                text: 'Total Votes Over Time'
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return `Total Votes: ${context.parsed.y}`;
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                min: 0,
+                ticks: {
+                  stepSize: 1,
+                  precision: 0
+                },
+                title: {
+                  display: true,
+                  text: 'Total Number of Votes'
+                }
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: 'Time'
+                },
+                ticks: {
+                  maxRotation: 45,
+                  minRotation: 45
+                }
+              }
+            },
+            interaction: {
+              intersect: false,
+              mode: 'index'
+            },
+            elements: {
+              line: {
+                tension: 0.4
+              },
+              point: {
+                radius: 4,
+                hitRadius: 10,
+                hoverRadius: 6
               }
             }
           }}

@@ -1,7 +1,7 @@
 import React from "react";
 import { CButton, CCard, CCardBody, CCardImage, CCardText, CCardTitle } from "@coreui/react";
 
-export const Card = ({ name, desc, imageAdd, onClick }) => {
+export const Card = ({ name, desc, imageAdd, onClick, age, voteCount }) => {
   return (
     <CCard 
       className="w-80 h-[600px] shadow-xl hover:shadow-2xl transition-shadow duration-300 rounded-lg overflow-hidden" 
@@ -26,6 +26,16 @@ export const Card = ({ name, desc, imageAdd, onClick }) => {
           >
             {desc}
           </CCardText>
+          {age && (
+            <CCardText style={{ color: "#FFFFFF" }} className="text-sm mt-2">
+              Age: {age}
+            </CCardText>
+          )}
+          {voteCount && (
+            <CCardText style={{ color: "#FFFFFF" }} className="text-sm mt-2">
+              Votes: {voteCount}
+            </CCardText>
+          )}
         </div>
         <div className="flex justify-end mt-4">
           <CButton onClick={onClick} className="gradient-border-button">

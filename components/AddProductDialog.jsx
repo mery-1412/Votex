@@ -1,11 +1,9 @@
-"use client";
-
 import { Modal, Label } from "flowbite-react";
 import { useState, useContext, useEffect } from "react";
 import { VotingContext } from "../context/Voter"; 
 import { AuthContext } from "../pages/context/AuthContext";
 import { Popup } from "./Popup";
-
+ 
 export function AddProductDialog() {
   const [openModal, setOpenModal] = useState(false);
   const { createCandidate, uploadToPinata, currentAccount, message, errMessage, setMessage, setErrMessage } = useContext(VotingContext);
@@ -111,7 +109,6 @@ export function AddProductDialog() {
 
   return (
     <>
-      <Popup message={message} isOpen={success} action={"Confirm"} onClose={() => setSuccess(false)} />
 
       <button 
         className="gradient-border-button-black" 
@@ -127,8 +124,8 @@ export function AddProductDialog() {
         setMsg("");
         setErrMessage("");
       }} size="xl">
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-lg z-50 overflow-y-auto py-4">
-          <div className="bg-[#3A2663] backdrop-blur-2xl p-6 rounded-lg shadow-2xl border border-black/20 w-full max-w-lg mx-4 my-auto">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-lg z-50">
+          <div className="bg-[#3A2663] backdrop-blur-2xl p-8 rounded-lg shadow-2xl border border-black/20 w-full max-w-lg">
             <Modal.Header>
               <h2 className="text-2xl font-semibold text-white text-center mb-2">Add a New Candidate</h2>
             </Modal.Header>
@@ -147,7 +144,7 @@ export function AddProductDialog() {
                 )}
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="flex flex-col">
                   <Label htmlFor="candidateName" value="Candidate Name" className="text-white text-sm font-medium mb-1" />
                   <input id="candidateName" placeholder="Enter Candidate name" required value={name} onChange={(e) => setName(e.target.value)} 
@@ -205,11 +202,11 @@ export function AddProductDialog() {
                   </div>
                 )}
                 
-                <Modal.Footer className="flex justify-end space-x-3 mt-4 pt-4 border-t border-gray-600">
+                <Modal.Footer className="flex justify-end space-x-3">
                   <button 
                     type="submit" 
                     disabled={!ipfs || !isWalletVerified || loading} 
-                    className={`gradient-border-button px-4 py-2 ${(!ipfs || !isWalletVerified || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`gradient-border-button ${(!ipfs || !isWalletVerified || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     Create Candidate
                   </button>
@@ -220,7 +217,7 @@ export function AddProductDialog() {
                       setMsg("");
                       setErrMessage("");
                     }} 
-                    className="gradient-border-button px-4 py-2"
+                    className="gradient-border-button"
                   >
                     Cancel
                   </button>

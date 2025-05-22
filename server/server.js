@@ -7,6 +7,7 @@ const testRoute = require("./route/routeTest")
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const voterRoutes = require('./controllers/votingBack');
+const archiveRoutes = require('./controllers/archiveController');
 
 dotenv.config(); 
 
@@ -29,6 +30,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json()); 
 app.use("/api/test-users", testRoute);
 app.use('/api/voter', voterRoutes);
+app.use('/api/archives', archiveRoutes);
 
 
 
