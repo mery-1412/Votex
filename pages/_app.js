@@ -27,7 +27,7 @@ const MyApp = ({ Component, pageProps }) => {
   return (
     <AuthContextProvider>
       <VotingProvider>
-        <div>
+        <div className="user-pages">
           {loading && <Loading />} 
           <div>
             <title>VoteX</title>

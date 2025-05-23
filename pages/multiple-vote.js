@@ -339,4 +339,3 @@ const MultipleVote = () => {
 export default MultipleVote;
 
 
-

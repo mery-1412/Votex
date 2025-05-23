@@ -901,7 +901,86 @@ const getVotingPeriod = async () => {
     }
   };
 
-
+  const getSessionData = async (sessionId) => {
+    try {
+      const contract = await connectSmartContract();
+      if (!contract) throw new Error("Failed to connect to smart contract");
+      
+      const session = await contract.getSession(sessionId);
+      if (!session) throw new Error("Session not found");
+      
+      const candidateAddresses = await contract.getSessionCandidates(sessionId);
+      const candidateNames = [];
+      const voteCounts = [];
+      
+      console.log("Getting data for candidates:", candidateAddresses);
+      
+      for (const address of candidateAddresses) {
+        console.log("Fetching data for candidate:", address);
+        const candidate = await contract.getCandidateData(address);
+        console.log("Raw candidate data:", candidate);
+        
+        // Handle different possible structures from the contract
+        // Some contracts return an array, others return an object with named properties
+        if (candidate) {
+          // If candidate is an array
+          if (Array.isArray(candidate)) {
+            candidateNames.push(candidate[1] || "Unknown"); // Name is at index 1
+            
+            // Vote count is at index 5, ensure it's converted to string
+            const voteCount = candidate[5] ? candidate[5].toString() : "0";
+            voteCounts.push(voteCount);
+          } 
+          // If candidate is an object with properties
+          else if (typeof candidate === 'object') {
+            candidateNames.push(candidate.name || "Unknown");
+            
+            // Check for voteCount property and convert to string
+            const voteCount = candidate.voteCount ? 
+              (typeof candidate.voteCount.toString === 'function' ? 
+                candidate.voteCount.toString() : 
+                String(candidate.voteCount)) : 
+              "0";
+            voteCounts.push(voteCount);
+          }
+        } else {
+          // Handle case where candidate data couldn't be retrieved
+          candidateNames.push("Unknown Candidate");
+          voteCounts.push("0");
+        }
+      }
+      
+      console.log("Processed candidate names:", candidateNames);
+      console.log("Processed vote counts:", voteCounts);
+      
+      // Find winner (candidate with most votes)
+      let winnerIndex = 0;
+      let maxVotes = 0;
+      
+      voteCounts.forEach((count, index) => {
+        const votes = parseInt(count) || 0;
+        if (votes > maxVotes) {
+          maxVotes = votes;
+          winnerIndex = index;
+        }
+      });
+      
+      return {
+        year: new Date().getFullYear(),
+        startTime: session.startPeriod.toString(),
+        endTime: session.endPeriod.toString(),
+        candidateNames,
+        voteCounts,
+        winnerName: candidateNames[winnerIndex] || "No winner",
+        winnerAddress: candidateAddresses[winnerIndex] || "0x0000000000000000000000000000000000000000",
+        winnerVoteCount: voteCounts[winnerIndex] || "0" // Ensure this is a string
+      };
+    } catch (error) {
+      console.error("Error getting session data:", error);
+      throw error;
+    }
+  };
+  
   return (
     <VotingContext.Provider
       value={{
@@ -928,11 +1007,11 @@ const getVotingPeriod = async () => {
         isLoading,    
         hasVoted,
         setHasVoted,
-        walletLinked
+        walletLinked,
+        getSessionData,
       }}
     >
       {children}
     </VotingContext.Provider>
   );
 };
-

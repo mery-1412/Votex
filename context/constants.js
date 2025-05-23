@@ -8,11 +8,13 @@ import voting from './Create.json';
 
 
 // //mery
-export const VotingAddress = '0xE4e9CdDf5ebAfbC45dEfb14e9847FD5075B38326';
+
+
+export const VotingAddress = '0xB7De53D9bd5e80c6eeb5E571Fa44473A4769d24F';
 
 
 //nariiiiiiiii
-// export const VotingAddress = '0x3943c0599C5935558DDc67c245eb25bDd036A8B2';
+// export const VotingAddress = '0x2DeBc12859B918a7f0DeFB29839f052547f2ad56';
 
 export const VotingAddressABI = voting.abi;
 

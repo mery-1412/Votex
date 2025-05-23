@@ -147,6 +147,7 @@ const CandidatesUser = () => {
     );
   }
 
+
   return (
     <RequireAuth>
       <UserNavBar />

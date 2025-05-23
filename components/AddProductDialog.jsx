@@ -66,7 +66,6 @@ export function AddProductDialog() {
     try {
       const ipfsHash = await uploadToPinata(image);
       setIpfs(ipfsHash);
-      setMsg("Image uploaded successfully to IPFS");
     } catch (error) {
       setMsg("Error uploading to IPFS");
       console.error(" Error uploading to IPFS:", error);

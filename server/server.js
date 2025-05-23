@@ -7,6 +7,7 @@ const testRoute = require("./route/routeTest")
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const voterRoutes = require('./controllers/votingBack');
+const archiveRoutes = require('./controllers/archiveController');
 
 dotenv.config(); 
 
@@ -29,6 +30,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json()); 
 app.use("/api/test-users", testRoute);
 app.use('/api/voter', voterRoutes);
+app.use('/api/archives', archiveRoutes);
 
 
 
@@ -37,5 +39,9 @@ mongoose
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.error("MongoDB Connection Error:", err));
 
-const PORT = process.env.PORT ;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Update the port configuration to have a fallback
+const PORT = process.env.PORT || 5000;  // Add fallback port
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Archive API available at http://localhost:${PORT}/api/archives`);
+});
