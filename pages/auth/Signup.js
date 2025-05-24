@@ -12,6 +12,8 @@ const Signup = () => {
   const [idNumber, setidNumber] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false);
+  const [showVerificationPopup, setShowVerificationPopup] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
 
   const router = useRouter();
 
@@ -31,7 +33,8 @@ const Signup = () => {
     axios.post("http://localhost:5000/api/auth/register",{email,password,idNumber})
     .then(res=>{
       setIsLoading(false);
-      router.push("/auth/Login")       
+      setRegisteredEmail(email);
+      setShowVerificationPopup(true); // Show popup instead of redirect      
     }).catch(err => {
       
       if (err.response && err.response.data && err.response.data.error) {
@@ -106,6 +109,27 @@ const Signup = () => {
       </form>
       <p className="mt-4 ">Already have an account? <a className="hover:underline" onClick={handleLoginRedirect}>Log In</a></p>
     </div>
+
+    {/* Add Verification Popup */}
+    {showVerificationPopup && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white bg-opacity-10 backdrop-blur-md p-8 rounded-lg border border-white border-opacity-30 text-white max-w-md">
+          <h2 className="text-2xl font-bold mb-4">Verify Your Email</h2>
+          <p className="mb-4">
+            We've sent a verification link to {registeredEmail}
+          </p>
+          <p className="text-sm text-gray-300 mb-6">
+            Please check your email and click the verification link to complete your registration.
+          </p>
+          <button 
+            onClick={() => setShowVerificationPopup(false)}
+            className="gradient-border-button"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    )}
   </div>
   </OnlyPublic>
   );

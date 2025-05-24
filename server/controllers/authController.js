@@ -30,24 +30,104 @@ exports.signup = async (req, res) => {
     const hashedPassword = await hashPassword(password);
     existingId.email = email;
     existingId.password = hashedPassword;
+    existingId.isVerified = false; // Ensure user starts unverified
     await existingId.save();
 
-    res.status(201).json({
-      success: true,
-      message: "User registered successfully",
-      userId: existingId._id,
-    });
+    // Generate verification token
+    const verificationToken = jwt.sign(
+      { id: existingId._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Create verification link
+    const verificationLink = `http://localhost:5000/api/auth/verify-email/${existingId._id}/${verificationToken}`;
+
+    // Send verification email
+    try {
+      await sendMail({
+        to: email,
+        subject: "Verify Your Email",
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>Email Verification</title>
+            <style>
+              body {
+                background-color: #0a0a23;
+                font-family: 'Arial', sans-serif;
+                color:#FFFFFF !important;
+                text-align: center;
+                margin: 0;
+                padding: 0;
+              }
+              .container {
+                width: 100%;
+                padding: 20px;
+              }
+              .email-box {
+                background: linear-gradient(135deg, #1a1a40, #4b0082);
+                padding: 30px;
+                border-radius: 12px;
+                box-shadow: 0px 4px 15px rgba(100, 0, 200, 0.4);
+                max-width: 500px;
+                margin: 20px auto;
+                text-align: center;
+              }
+              .btn {
+                display: inline-block;
+                padding: 12px 24px;
+                margin-top: 15px;
+                font-size: 16px;
+                font-weight: bold;
+                color: #ffffff !important;
+                background: linear-gradient(90deg, #8a2be2, #6a0dad);
+                border-radius: 8px;
+                text-decoration: none !important;
+                box-shadow: 0px 4px 10px rgba(138, 43, 226, 0.4);
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="email-box">
+                <h2>Verify Your Email</h2>
+                <p>Thank you for registering. Please click the button below to verify your email address.</p>
+                <a href="${verificationLink}" class="btn">Verify Email</a>
+                <p class="footer">This link will expire in 24 hours.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "Registration successful. Please check your email to verify your account.",
+        userId: existingId._id,
+      });
+    } catch (emailError) {
+      console.error("Failed to send verification email:", emailError);
+      res.status(201).json({
+        success: true,
+        message: "Registration successful but failed to send verification email. Please contact support.",
+        userId: existingId._id,
+      });
+    }
   } catch (err) {
+    console.error("Registration error:", err);
     res.status(500).json({ error: "Internal Server Error", details: err.message });
   }
 };
 
 
 
+
 exports.login = async (req, res) => {
   try {
-    
-    
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
@@ -55,6 +135,14 @@ exports.login = async (req, res) => {
       return res.status(404).json({
         success: false,
         error: "User with given email not found",
+      });
+    }
+
+    // Add verification check
+    if (!user.isVerified) {
+      return res.status(401).json({
+        success: false,
+        error: "Please verify your email before logging in"
       });
     }
 
@@ -221,3 +309,31 @@ exports.logout = async(req, res) => {
   res.clearCookie("sessionId");
   res.status(200).json({ message: "Logged out successfully" });
 }
+
+exports.verifyEmail = async (req, res) => {
+  try {
+    const { id, token } = req.params;
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.redirect('http://localhost:3000/auth/Login');
+    }
+
+    try {
+      // Verify token
+      jwt.verify(token, process.env.JWT_SECRET);
+
+      // Update user verification status
+      user.isVerified = true;
+      await user.save();
+
+      // Redirect to login page with the correct URL
+      return res.redirect('http://localhost:3000/auth/Login');
+    } catch (tokenError) {
+      return res.redirect('http://localhost:3000/auth/Login');
+    }
+  } catch (err) {
+    console.error("Email verification error:", err);
+    return res.redirect('http://localhost:3000/auth/Login');
+  }
+};

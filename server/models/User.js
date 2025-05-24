@@ -11,6 +11,10 @@ const UserSchema = new mongoose.Schema({
     type: String, 
     enum: ["voter", "admin"], 
     default: "voter"
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
   }
 });
 

@@ -5,17 +5,17 @@ const jwt = require('jsonwebtoken');
 exports.addTestUsers = async (req, res) => {
   try {
     const testUsers = [
-        { idNumber: "123456789" },
-        { idNumber: "987654321" },
-        { idNumber: "111222333" },
-        { idNumber: "444555666" },
-        { idNumber: "777888999" },
-        { idNumber: "101112131" },
-        { idNumber: "141516171" },
-        { idNumber: "181920212" },
-        { idNumber: "222324252" },
-        { idNumber: "262728293" },
-        { idNumber: "303132333" },
+        { idNumber: "123456455" },
+        { idNumber: "987654321234" },
+        { idNumber: "111222333432" },
+        { idNumber: "44455566645678765" },
+        { idNumber: "77788899967654" },
+        { idNumber: "101112131T45" },
+        { idNumber: "1415161713456" },
+        { idNumber: "181920212456" },
+        { idNumber: "222324252787654" },
+        { idNumber: "2627282934567" },
+        { idNumber: "303132333Z456" },
     ];
 
     for (const user of testUsers) {
