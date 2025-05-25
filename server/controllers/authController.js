@@ -126,8 +126,11 @@ exports.signup = async (req, res) => {
 
 
 
+
 exports.login = async (req, res) => {
   try {
+    
+    
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
@@ -135,14 +138,6 @@ exports.login = async (req, res) => {
       return res.status(404).json({
         success: false,
         error: "User with given email not found",
-      });
-    }
-
-    // Add verification check
-    if (!user.isVerified) {
-      return res.status(401).json({
-        success: false,
-        error: "Please verify your email before logging in"
       });
     }
 

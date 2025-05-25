@@ -3,14 +3,14 @@
 
 import voting from './Create.json';
 //hiba:
-// export const VotingAddress = '0x72C9c07bb1Ee02a789B190B2E20234C6F7A541AC';
+export const VotingAddress = '0x8414d2B7dD07d26d5ef0CaBcF5C22183e30eB996';
 
 
 
 // //mery
 
 
-export const VotingAddress = '0xB7De53D9bd5e80c6eeb5E571Fa44473A4769d24F';
+// export const VotingAddress = '0xB7De53D9bd5e80c6eeb5E571Fa44473A4769d24F';
 
 
 //nariiiiiiiii
