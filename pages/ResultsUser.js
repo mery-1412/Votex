@@ -8,7 +8,8 @@ const ResultsUser = () => {
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [winner, setWinner] = useState(null);
   const [votingEnded, setVotingEnded] = useState(false);
-  const { getVotingPeriod, getAllCandidates, getCandidateDetails } = useContext(VotingContext);
+  const [isSessionActive, setIsSessionActive] = useState(false);
+  const { getVotingPeriod, getCurrentSessionCandidates, getCandidateDetails } = useContext(VotingContext);
 
   // Format time function from Countdown component
   const formatTime = (ms) => {
@@ -57,41 +58,57 @@ const ResultsUser = () => {
     const checkVotingStatus = async () => {
       try {
         const periodData = await getVotingPeriod();
-        if (periodData?.end) {
-          const endTime = new Date(periodData.end * 1000).getTime();
-          const now = new Date().getTime();
-          const remaining = endTime - now;
+        
+        // If no active period, reset everything
+        if (!periodData || !periodData.end) {
+          setVotingEnded(false);
+          setIsSessionActive(false);
+          setWinner(null);
+          setTimeRemaining(0);
+          return;
+        }
 
-          if (remaining <= 0) {
-            setVotingEnded(true);
-            const candidates = await getAllCandidates();
-            if (candidates && candidates.length > 0) {
-              // Find winner (candidate with most votes)
-              let maxVotes = 0;
-              let winningCandidate = null;
-              
-              for (const candidate of candidates) {
-                const details = await getCandidateDetails(candidate._address);
-                if (details && parseInt(details.voteCount) > maxVotes) {
-                  maxVotes = parseInt(details.voteCount);
-                  winningCandidate = {
-                    ...details,
-                    imageUrl: `https://gateway.pinata.cloud/ipfs/${details.ipfs}`
-                  };
-                }
+        const endTime = new Date(periodData.end * 1000).getTime();
+        const startTime = new Date(periodData.start * 1000).getTime();
+        const now = new Date().getTime();
+        const remaining = endTime - now;
+
+        // Check if we're in an active session
+        setIsSessionActive(now >= startTime && now <= endTime);
+
+        if (remaining <= 0) {
+          setVotingEnded(true);
+          const candidates = await getCurrentSessionCandidates();
+          
+          if (candidates && candidates.length > 0) {
+            let maxVotes = 0;
+            let winningCandidate = null;
+            
+            for (const candidateAddress of candidates) {
+              const details = await getCandidateDetails(candidateAddress);
+              // Only consider non-archived candidates from the current session
+              if (details && parseInt(details.voteCount) > maxVotes) {
+                maxVotes = parseInt(details.voteCount);
+                winningCandidate = {
+                  ...details,
+                  imageUrl: details.imageUrl // Already includes IPFS gateway URL
+                };
               }
-              setWinner(winningCandidate);
             }
-          } else {
-            setTimeRemaining(remaining);
+            setWinner(winningCandidate);
           }
+        } else {
+          setVotingEnded(false);
+          setWinner(null);
+          setTimeRemaining(remaining);
         }
       } catch (error) {
         console.error("Error checking voting status:", error);
       }
     };
 
-    checkVotingStatus();
+    // Initial check
+    checkVotingStatus();// Set up polling interval
     const interval = setInterval(checkVotingStatus, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -105,7 +122,11 @@ const ResultsUser = () => {
             Voting Results
           </h1>
 
-          {!votingEnded ? (
+          {!isSessionActive && !votingEnded ? (
+            <div className="text-center text-white">
+              <p className="text-xl">No active voting session at the moment.</p>
+            </div>
+          ) : !votingEnded ? (
             <div className="text-center">
               <h2 className="text-2xl text-white mb-8">Time Remaining Until Results</h2>
               {formatTime(timeRemaining)}
@@ -149,7 +170,7 @@ const ResultsUser = () => {
             </div>
           ) : (
             <div className="text-center text-white">
-              <p className="text-xl">No winner has been determined yet.</p>
+              <p className="text-xl">Vote counting in progress...</p>
             </div>
           )}
         </div>
