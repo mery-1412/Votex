@@ -53,7 +53,7 @@ VoteX addresses the core challenges in modern digital voting systems:
 ```bash
 git clone https://github.com/yourusername/VoteX.git
 cd VoteX
-````
+```
 
 ---
 
